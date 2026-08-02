@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm lint
+
+      - run: pnpm typecheck
+
+      - run: pnpm test
+
+      - name: Build
+        env:
+          # Placeholders — o build não conecta em serviços reais, só
+          # precisa que as variáveis existam (lidas em módulos server-side).
+          DATABASE_URL: "postgresql://user:password@localhost:5432/ci"
+          AUTH_SECRET: "ci-placeholder-secret"
+          NEON_STORAGE_ENDPOINT: "https://example.invalid"
+          NEON_STORAGE_BUCKET: "ci-placeholder"
+          NEON_STORAGE_ACCESS_KEY_ID: "ci-placeholder"
+          NEON_STORAGE_SECRET_ACCESS_KEY: "ci-placeholder"
+        run: pnpm build
