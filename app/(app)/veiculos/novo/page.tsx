@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 
 import { createVehicle } from "@/lib/vehicles/actions";
+import { PageHeader } from "@/components/ui/page-header";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { TextField } from "@/components/ui/text-field";
 
@@ -11,8 +12,8 @@ export default function NovoVeiculoPage() {
 
   return (
     <div className="mx-auto w-full max-w-md flex-1 px-4 py-8 sm:px-6 sm:py-10">
-      <h1 className="text-xl font-semibold">Adicionar veículo</h1>
-      <p className="mt-2 text-sm text-zinc-500">
+      <PageHeader title="Adicionar veículo" backHref="/garagem" />
+      <p className="mt-2 text-sm text-foreground-muted">
         Cadastro manual por enquanto. Identificação por placa, com colapso de candidatos (PRD
         seção 5.2), chega no Sprint 1, depois do spike de fornecedor — ver docs/ROADMAP.md.
       </p>
@@ -44,7 +45,7 @@ export default function NovoVeiculoPage() {
           placeholder="85000"
         />
         {state?.error ? (
-          <p role="alert" className="text-sm text-red-600 dark:text-red-400">
+          <p role="alert" className="text-sm text-error">
             {state.error}
           </p>
         ) : null}

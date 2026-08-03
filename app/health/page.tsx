@@ -14,8 +14,8 @@ export default async function HealthPage() {
 
   return (
     <div className="mx-auto w-full max-w-2xl flex-1 px-6 py-10">
-      <h1 className="text-xl font-semibold">Health check</h1>
-      <p className="mt-2 text-sm text-zinc-500">
+      <h1 className="font-heading text-xl font-bold text-foreground">Health check</h1>
+      <p className="mt-2 text-sm text-foreground-muted">
         {engines.length} motor(es) no catálogo curado (lido via Drizzle + Neon).
       </p>
       <ul className="mt-4 flex flex-col gap-1 text-sm">

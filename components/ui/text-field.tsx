@@ -11,11 +11,11 @@ export function TextField({ label, id, name, className, ...props }: TextFieldPro
   const fieldId = id ?? name;
   return (
     <label htmlFor={fieldId} className="flex flex-col gap-1.5">
-      <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{label}</span>
+      <span className="text-sm font-medium text-foreground-muted">{label}</span>
       <input
         id={fieldId}
         name={name}
-        className={`min-h-11 rounded-md border border-zinc-300 px-3 py-2 text-base dark:border-zinc-700 dark:bg-transparent ${className ?? ""}`}
+        className={`min-h-11 rounded-lg border border-border bg-surface px-3 py-2 text-base text-foreground outline-none transition-colors placeholder:text-foreground-muted/60 focus:border-accent focus:ring-2 focus:ring-accent/20 ${className ?? ""}`}
         {...props}
       />
     </label>

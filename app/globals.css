@@ -1,26 +1,86 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f6f7f9;
+  --surface: #ffffff;
+  --foreground: #10131a;
+  --foreground-muted: #4b5563;
+
+  --accent: #1b4b91;
+  --accent-hover: #163c74;
+  --accent-active: #12315f;
+  --accent-foreground: #ffffff;
+  --accent-soft: #eaf1fc;
+  --accent-text: #1b4b91;
+
+  --border: #e2e5ea;
+
+  --success: #15803d;
+  --success-soft: #eaf6ee;
+  --warning: #b45309;
+  --warning-soft: #fffbeb;
+  --error: #b91c1c;
+  --error-soft: #fef2f2;
+
+  --shadow-card: 0 1px 2px rgba(16, 24, 40, 0.04), 0 4px 10px rgba(16, 24, 40, 0.06);
+  --shadow-card-hover: 0 2px 4px rgba(16, 24, 40, 0.06), 0 10px 24px rgba(16, 24, 40, 0.1);
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-surface: var(--surface);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-foreground-muted: var(--foreground-muted);
+
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-active: var(--accent-active);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-text: var(--accent-text);
+
+  --color-border: var(--border);
+
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-error: var(--error);
+  --color-error-soft: var(--error-soft);
+
+  --font-sans: var(--font-body);
+  --font-heading: var(--font-heading);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #0b0f14;
+    --surface: #131922;
+    --foreground: #f1f3f6;
+    --foreground-muted: #9aa4b2;
+
+    --accent: #2a5cae;
+    --accent-hover: #3568c2;
+    --accent-active: #1f477f;
+    --accent-soft: #16233a;
+    --accent-text: #5b9bff;
+
+    --border: #232b36;
+
+    --success: #34d399;
+    --success-soft: #123422;
+    --warning: #fbbf24;
+    --warning-soft: #2a1f03;
+    --error: #f87171;
+    --error-soft: #3a1414;
+
+    --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 1px 3px rgba(0, 0, 0, 0.4);
+    --shadow-card-hover: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 2px 6px rgba(0, 0, 0, 0.5);
   }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
 }

@@ -4,7 +4,7 @@ import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
 import { AuthError } from "next-auth";
 
-import { signIn } from "@/lib/auth/auth";
+import { signIn, signOut } from "@/lib/auth/auth";
 import { db } from "@/lib/db/client";
 import { users } from "@/lib/db/schema";
 
@@ -12,6 +12,12 @@ export type ActionState = { error?: string } | undefined;
 
 export async function signInWithGoogle() {
   await signIn("google", { redirectTo: "/garagem" });
+}
+
+// Sem try/catch: diferente de signIn("credentials", ...), não há um erro de
+// validação a distinguir do redirect() interno de sucesso.
+export async function signOutAction() {
+  await signOut({ redirectTo: "/" });
 }
 
 export async function authenticateWithCredentials(
