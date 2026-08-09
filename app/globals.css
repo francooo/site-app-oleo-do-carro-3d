@@ -1,34 +1,52 @@
 @import "tailwindcss";
 
+/* Kinetic Logic — sistema escuro (Material Design 3), dark-only por decisão
+   de produto. Valores extraídos do tailwind-config do mockup de referência
+   (fonte de maior confiança que a prosa solta do DESIGN.md, que cita hex de
+   exemplo levemente diferentes dos tokens realmente usados). */
 :root {
-  --background: #f6f7f9;
-  --surface: #ffffff;
-  --foreground: #10131a;
-  --foreground-muted: #4b5563;
+  color-scheme: dark;
 
-  --accent: #1b4b91;
-  --accent-hover: #163c74;
-  --accent-active: #12315f;
+  /* DESIGN.md usa só Inter — aliasa heading pro mesmo --font-body carregado
+     em app/layout.tsx, pra classe `font-heading` (já usada em várias
+     páginas) continuar funcionando sem editar cada arquivo. */
+  --font-heading: var(--font-body);
+
+  --background: #131315;
+  --surface-lowest: #0e0e10;
+  --surface-low: #1b1b1d;
+  --surface: #1f1f21;
+  --surface-variant: #353437;
+
+  --foreground: #e4e2e4;
+  --foreground-muted: #c1c6d7;
+
+  --accent: #4b8eff;
+  --accent-hover: #005bc1;
+  --accent-active: #004493;
   --accent-foreground: #ffffff;
-  --accent-soft: #eaf1fc;
-  --accent-text: #1b4b91;
+  --accent-text: #adc6ff;
 
-  --border: #e2e5ea;
+  --border: #414755;
 
-  --success: #15803d;
-  --success-soft: #eaf6ee;
-  --warning: #b45309;
-  --warning-soft: #fffbeb;
-  --error: #b91c1c;
-  --error-soft: #fef2f2;
+  --success: #7dda8c;
+  --success-soft: #16331d;
+  --warning: #ffb4aa;
+  --warning-soft: #c5020b;
+  --error: #ffb4ab;
+  --error-soft: #93000a;
 
-  --shadow-card: 0 1px 2px rgba(16, 24, 40, 0.04), 0 4px 10px rgba(16, 24, 40, 0.06);
-  --shadow-card-hover: 0 2px 4px rgba(16, 24, 40, 0.06), 0 10px 24px rgba(16, 24, 40, 0.1);
+  --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-card-hover: 0 8px 24px rgba(0, 0, 0, 0.2);
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-surface-lowest: var(--surface-lowest);
+  --color-surface-low: var(--surface-low);
   --color-surface: var(--surface);
+  --color-surface-variant: var(--surface-variant);
+
   --color-foreground: var(--foreground);
   --color-foreground-muted: var(--foreground-muted);
 
@@ -36,7 +54,6 @@
   --color-accent-hover: var(--accent-hover);
   --color-accent-active: var(--accent-active);
   --color-accent-foreground: var(--accent-foreground);
-  --color-accent-soft: var(--accent-soft);
   --color-accent-text: var(--accent-text);
 
   --color-border: var(--border);
@@ -50,33 +67,44 @@
 
   --font-sans: var(--font-body);
   --font-heading: var(--font-heading);
-}
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0b0f14;
-    --surface: #131922;
-    --foreground: #f1f3f6;
-    --foreground-muted: #9aa4b2;
+  /* Radius — sobrescreve a escala padrão do Tailwind para bater com o
+     DESIGN.md (elementos padrão 12px, containers grandes 16px). */
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
 
-    --accent: #2a5cae;
-    --accent-hover: #3568c2;
-    --accent-active: #1f477f;
-    --accent-soft: #16233a;
-    --accent-text: #5b9bff;
+  /* Escala tipográfica composta do DESIGN.md */
+  --text-display-lg: 3rem;
+  --text-display-lg--line-height: 3.5rem;
+  --text-display-lg--letter-spacing: -0.02em;
+  --text-display-lg--font-weight: 700;
 
-    --border: #232b36;
+  --text-headline-lg: 2rem;
+  --text-headline-lg--line-height: 2.5rem;
+  --text-headline-lg--letter-spacing: -0.01em;
+  --text-headline-lg--font-weight: 700;
 
-    --success: #34d399;
-    --success-soft: #123422;
-    --warning: #fbbf24;
-    --warning-soft: #2a1f03;
-    --error: #f87171;
-    --error-soft: #3a1414;
+  --text-headline-lg-mobile: 1.5rem;
+  --text-headline-lg-mobile--line-height: 2rem;
+  --text-headline-lg-mobile--font-weight: 700;
 
-    --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 1px 3px rgba(0, 0, 0, 0.4);
-    --shadow-card-hover: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 2px 6px rgba(0, 0, 0, 0.5);
-  }
+  --text-headline-md: 1.5rem;
+  --text-headline-md--line-height: 2rem;
+  --text-headline-md--font-weight: 600;
+
+  --text-body-lg: 1.125rem;
+  --text-body-lg--line-height: 1.75rem;
+  --text-body-lg--font-weight: 400;
+
+  --text-body-md: 1rem;
+  --text-body-md--line-height: 1.5rem;
+  --text-body-md--font-weight: 400;
+
+  --text-label-md: 0.875rem;
+  --text-label-md--line-height: 1.25rem;
+  --text-label-md--letter-spacing: 0.01em;
+  --text-label-md--font-weight: 600;
 }
 
 body {

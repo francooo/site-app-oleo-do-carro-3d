@@ -14,3 +14,17 @@ export async function countEngines() {
   const rows = await db.query.engines.findMany({ columns: { id: true } });
   return rows.length;
 }
+
+export async function getCatalogStats() {
+  const [engineRows, fluidTypeRows, componentTypeRows] = await Promise.all([
+    db.query.engines.findMany({ columns: { id: true } }),
+    db.query.fluidTypes.findMany({ columns: { code: true } }),
+    db.query.componentTypes.findMany({ columns: { code: true } }),
+  ]);
+
+  return {
+    engines: engineRows.length,
+    fluidTypes: fluidTypeRows.length,
+    componentTypes: componentTypeRows.length,
+  };
+}

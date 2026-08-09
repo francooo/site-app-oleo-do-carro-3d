@@ -1,10 +1,22 @@
-import { Car, Settings } from "lucide-react";
+import { Car, Plus } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { buttonClasses } from "@/components/ui/button-styles";
+import { PageHeader } from "@/components/ui/page-header";
 import { auth } from "@/lib/auth/auth";
 import { getVehiclesByUser } from "@/lib/db/queries/vehicles";
+
+// PRD não tem telemetria (OBD2 é non-goal explícito) — a faixa de status do
+// card reflete engine_match_status, o único "status" que de fato existe.
+const STATUS_STYLES: Record<string, { stripClass: string; label: string }> = {
+  confirmed: { stripClass: "bg-success", label: "Motor identificado" },
+  manual_override: { stripClass: "bg-success", label: "Motor identificado" },
+  pending_disambiguation: { stripClass: "bg-warning", label: "Confirmar motor" },
+  unmatched: { stripClass: "bg-border", label: "Aguardando curadoria" },
+};
+
+const km = new Intl.NumberFormat("pt-BR");
 
 export default async function GaragemPage() {
   const session = await auth();
@@ -19,54 +31,75 @@ export default async function GaragemPage() {
   const vehicles = await getVehiclesByUser(session.user.id);
 
   return (
-    <div className="mx-auto w-full max-w-2xl flex-1 px-4 py-8 sm:px-6 sm:py-10">
-      <div className="mb-6 flex items-center justify-between gap-3">
-        <h1 className="font-heading text-xl font-bold tracking-tight text-foreground">
-          Sua garagem
-        </h1>
-        <div className="flex items-center gap-2">
-          <Link
-            href="/configuracoes"
-            aria-label="Configurações"
-            className="flex min-h-11 min-w-11 items-center justify-center rounded-lg text-foreground-muted transition-colors active:bg-accent-soft active:text-accent-text"
-          >
-            <Settings className="h-5 w-5" strokeWidth={2} aria-hidden="true" />
-          </Link>
+    <div className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 sm:py-10">
+      <PageHeader
+        title="Sua garagem"
+        actions={
           <Link href="/veiculos/novo" className={buttonClasses("primary")}>
             Adicionar
           </Link>
-        </div>
-      </div>
+        }
+      />
+      <p className="mb-6 text-sm text-foreground-muted">
+        Gerencie os veículos cadastrados na sua garagem.
+      </p>
 
-      {vehicles.length === 0 ? (
-        <p className="text-sm text-foreground-muted">
-          Nenhum veículo cadastrado ainda. Cadastro por placa (PRD seção 5.2) chega no Sprint 1 —
-          por ora, use o cadastro manual.
-        </p>
-      ) : (
-        <ul className="flex flex-col gap-3">
-          {vehicles.map((vehicle) => (
-            <li key={vehicle.id}>
+      <ul className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+        {vehicles.map((vehicle) => {
+          const status = STATUS_STYLES[vehicle.engineMatchStatus] ?? STATUS_STYLES.unmatched;
+          return (
+            <li key={vehicle.id} className="relative">
               <Link
                 href={`/veiculos/${vehicle.id}`}
-                className="group flex min-h-11 items-center gap-4 rounded-xl border border-border/60 bg-surface px-4 py-4 shadow-[var(--shadow-card)] transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-card-hover)] active:translate-y-0"
+                className="group relative flex h-full flex-col gap-4 overflow-hidden rounded-2xl border border-border/60 bg-surface p-6 pl-7 shadow-[var(--shadow-card)] transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-card-hover)]"
               >
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent">
-                  <Car className="h-6 w-6" strokeWidth={2} aria-hidden="true" />
-                </div>
+                <span
+                  aria-hidden="true"
+                  className={`absolute inset-y-0 left-0 w-1 ${status.stripClass}`}
+                />
+
                 <div>
-                  <p className="font-heading font-semibold text-foreground">
-                    {vehicle.make} {vehicle.model} {vehicle.year}
+                  <h3 className="font-heading text-lg font-semibold text-foreground">
+                    {vehicle.make} {vehicle.model}
+                  </h3>
+                  <p className="mt-1 text-xs text-foreground-muted">
+                    Placa {vehicle.plate} · {vehicle.year}
                   </p>
-                  <span className="mt-1 inline-block rounded-md bg-background px-2 py-0.5 font-mono text-xs font-medium tracking-wide text-foreground-muted">
-                    {vehicle.plate}
-                  </span>
+                </div>
+
+                <div className="flex h-24 items-center justify-center rounded-xl bg-background text-foreground-muted/40">
+                  <Car className="h-10 w-10" strokeWidth={1.5} aria-hidden="true" />
+                </div>
+
+                <div className="mt-auto flex items-center justify-between border-t border-border/30 pt-4 text-xs">
+                  <span className="text-foreground-muted">{status.label}</span>
+                  {vehicle.currentKm != null ? (
+                    <span className="font-mono text-foreground">{km.format(vehicle.currentKm)} km</span>
+                  ) : null}
                 </div>
               </Link>
             </li>
-          ))}
-        </ul>
-      )}
+          );
+        })}
+
+        <li>
+          <Link
+            href="/veiculos/novo"
+            className="flex h-full min-h-[220px] flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border p-6 text-center transition-colors hover:border-accent hover:bg-accent/5"
+          >
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-accent/10 text-accent-text">
+              <Plus className="h-6 w-6" strokeWidth={2} aria-hidden="true" />
+            </div>
+            <p className="font-heading font-semibold text-foreground">
+              {vehicles.length === 0 ? "Adicione seu primeiro veículo" : "Adicionar outro veículo"}
+            </p>
+            <p className="max-w-[220px] text-sm text-foreground-muted">
+              Cadastro por placa (PRD seção 5.2) chega no Sprint 1 — por ora, use o cadastro
+              manual.
+            </p>
+          </Link>
+        </li>
+      </ul>
     </div>
   );
 }

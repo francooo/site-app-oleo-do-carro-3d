@@ -1,13 +1,10 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Plus_Jakarta_Sans } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 
-const fontHeading = Plus_Jakarta_Sans({
-  variable: "--font-heading",
-  subsets: ["latin"],
-  weight: ["600", "700", "800"],
-});
-
+// DESIGN.md ("Kinetic Logic") usa só Inter — sem par heading/body distinto.
+// --font-heading é aliasada para a mesma fonte em globals.css (:root), para
+// não precisar editar as páginas que já usam a classe `font-heading`.
 const fontBody = Inter({
   variable: "--font-body",
   subsets: ["latin"],
@@ -27,10 +24,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f6f7f9" },
-    { media: "(prefers-color-scheme: dark)", color: "#0b0f14" },
-  ],
+  themeColor: "#131315",
 };
 
 export default function RootLayout({
@@ -39,10 +33,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="pt-BR"
-      className={`${fontHeading.variable} ${fontBody.variable} h-full antialiased`}
-    >
+    <html lang="pt-BR" className={`${fontBody.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
         {children}
       </body>

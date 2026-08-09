@@ -11,6 +11,8 @@ Next.js (App Router) + TypeScript + Tailwind v4 · Neon (Postgres serverless) + 
 
 Autorização por usuário é feita na camada de aplicação (`lib/db/queries/*`), não por RLS de banco — ver seção 6 do PRD para o racional.
 
+**`pnpm dev` usa Turbopack, `pnpm build` usa Webpack.** O Serwist (PWA) injeta um config de webpack no `next.config.ts`, que não funciona sob Turbopack — em dev isso só desativa a geração do service worker (o app funciona normal, só sem cache offline ativo); em build seria um erro fatal, por isso o `build` força `--webpack` explicitamente. Teste o cache offline via `pnpm build && pnpm start`, não em dev.
+
 ## Setup local
 
 1. **Instalar dependências**

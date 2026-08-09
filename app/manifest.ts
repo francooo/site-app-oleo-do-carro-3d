@@ -8,8 +8,8 @@ export default function manifest(): MetadataRoute.Manifest {
       "O que o seu carro usa e quando trocar — em menos de 30 segundos.",
     start_url: "/garagem",
     display: "standalone",
-    background_color: "#f6f7f9",
-    theme_color: "#1b4b91",
+    background_color: "#131315",
+    theme_color: "#4b8eff",
     icons: [
       {
         src: "/icon.png",
