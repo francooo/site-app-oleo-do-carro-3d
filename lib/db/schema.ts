@@ -1,6 +1,7 @@
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import {
   boolean,
+  check,
   index,
   integer,
   jsonb,
@@ -115,6 +116,8 @@ export const sourceTypeEnum = pgEnum("source_type", [
 export const fluidTypes = pgTable("fluid_types", {
   code: text("code").primaryKey(),
   label: text("label").notNull(),
+  /** "Para que serve?" — texto geral, vale para qualquer motor. */
+  description: text("description"),
   displayOrder: integer("display_order").notNull().default(0),
 });
 
@@ -144,18 +147,28 @@ export const engines = pgTable("engines", {
   notes: text("notes"),
 });
 
-export const engineLayoutHotspots = pgTable("engine_layout_hotspots", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  layoutId: uuid("layout_id")
-    .notNull()
-    .references(() => engineLayouts.id, { onDelete: "cascade" }),
-  componentType: text("component_type")
-    .notNull()
-    .references(() => componentTypes.code),
-  x: numeric("x", { precision: 5, scale: 2 }).notNull(),
-  y: numeric("y", { precision: 5, scale: 2 }).notNull(),
-  description: text("description"),
-});
+// Um ponto do mapa aponta para um componente (filtro) OU para um fluido
+// (reservatório) — o CHECK garante exatamente um dos dois.
+export const engineLayoutHotspots = pgTable(
+  "engine_layout_hotspots",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    layoutId: uuid("layout_id")
+      .notNull()
+      .references(() => engineLayouts.id, { onDelete: "cascade" }),
+    componentType: text("component_type").references(() => componentTypes.code),
+    fluidType: text("fluid_type").references(() => fluidTypes.code),
+    x: numeric("x", { precision: 5, scale: 2 }).notNull(),
+    y: numeric("y", { precision: 5, scale: 2 }).notNull(),
+    description: text("description"),
+  },
+  (table) => [
+    check(
+      "engine_layout_hotspots_target_check",
+      sql`(${table.componentType} is null) <> (${table.fluidType} is null)`,
+    ),
+  ],
+);
 
 // Sem `engine_id` direto: o colapso de candidatos (PRD 5.2) exige suportar
 // múltiplos motores candidatos por combinação marca/modelo/ano/versão —
@@ -220,6 +233,12 @@ export const engineFluids = pgTable(
     viscosity: text("viscosity"),
     volumeMl: integer("volume_ml"),
     volumeWithFilterMl: integer("volume_with_filter_ml"),
+    /** Capacidade alternativa com aquecedor e/ou ar-condicionado
+     *  (ex.: arrefecimento do Uno 1.0: 4,9 L base, 5,3 L com A/C). */
+    volumeWithAcMl: integer("volume_with_ac_ml"),
+    /** Frequência de verificação do nível indicada pela fonte
+     *  (Uno: "a cada 500 km ou antes de viagens longas"). */
+    checkIntervalKm: integer("check_interval_km"),
     intervalKm: integer("interval_km"),
     intervalMonths: integer("interval_months"),
     sourceId: uuid("source_id")
@@ -312,6 +331,23 @@ export const vehicles = pgTable(
   ],
 );
 
+// "verificar nível" ≠ "trocar fluido" (critério de UX §5). `servico` cobre
+// registros livres (revisão, peças) que não são de um fluido específico.
+export const maintenanceKindEnum = pgEnum("maintenance_kind", [
+  "verificacao",
+  "complemento",
+  "troca",
+  "servico",
+]);
+
+export const checkResultEnum = pgEnum("check_result", [
+  "ok",
+  "baixo_completei",
+  "baixo_nao_completei",
+]);
+
+// Fonte única de verdade do status dos fluidos: o status é DERIVADO dos
+// registros (lib/domain/fluid-status.ts), não guardado em tabela própria.
 export const maintenanceRecords = pgTable(
   "maintenance_records",
   {
@@ -320,7 +356,11 @@ export const maintenanceRecords = pgTable(
       .notNull()
       .references(() => vehicles.id, { onDelete: "cascade" }),
     date: timestamp("date", { mode: "date", withTimezone: true }).notNull(),
-    km: integer("km").notNull(),
+    /** Nulo quando o usuário não sabe a quilometragem na hora. */
+    km: integer("km"),
+    kind: maintenanceKindEnum("kind").notNull().default("servico"),
+    fluidType: text("fluid_type").references(() => fluidTypes.code),
+    checkResult: checkResultEnum("check_result"),
     serviceType: text("service_type").notNull(),
     workshop: text("workshop"),
     parts: jsonb("parts"),
@@ -330,7 +370,14 @@ export const maintenanceRecords = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (table) => [index("maintenance_records_vehicle_id_idx").on(table.vehicleId)],
+  (table) => [
+    index("maintenance_records_vehicle_id_idx").on(table.vehicleId),
+    index("maintenance_records_vehicle_fluid_idx").on(
+      table.vehicleId,
+      table.fluidType,
+      table.date,
+    ),
+  ],
 );
 
 export const documents = pgTable("documents", {
@@ -418,6 +465,10 @@ export const engineLayoutHotspotsRelations = relations(
     layout: one(engineLayouts, {
       fields: [engineLayoutHotspots.layoutId],
       references: [engineLayouts.id],
+    }),
+    fluid: one(fluidTypes, {
+      fields: [engineLayoutHotspots.fluidType],
+      references: [fluidTypes.code],
     }),
   }),
 );

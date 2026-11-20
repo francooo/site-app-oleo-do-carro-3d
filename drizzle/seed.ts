@@ -1,17 +1,52 @@
-import { db } from "../lib/db/client";
-import { componentTypes, fluidTypes } from "../lib/db/schema";
+import { and, eq } from "drizzle-orm";
 
-// Tabelas de lookup (PRD seção 7, ajuste v2.2-c) — categorias fixas
-// derivadas da seção 5.3 do PRD, não dado de curadoria por motor. Curadoria
-// de motores/fluidos/componentes em si acontece por script à parte,
-// conforme o Sprint 1 avança (ver docs/ROADMAP.md).
+import { db } from "../lib/db/client";
+import {
+  componentTypes,
+  engineFluids,
+  engineLayoutHotspots,
+  engineLayouts,
+  engines,
+  fluidTypes,
+  sources,
+  trimEngineCandidates,
+  trimEngineMap,
+} from "../lib/db/schema";
+
+// Tabelas de lookup (PRD seção 7, ajuste v2.2-c) + dados do piloto Fiat Uno
+// 2016 1.0 Flex. Idempotente: pode rodar quantas vezes for preciso.
 
 const FLUID_TYPES = [
-  { code: "oil", label: "Óleo do motor", displayOrder: 1 },
-  { code: "brake", label: "Fluido de freio", displayOrder: 2 },
-  { code: "coolant", label: "Arrefecimento", displayOrder: 3 },
-  { code: "transmission", label: "Fluido de transmissão", displayOrder: 4 },
-  { code: "washer", label: "Fluido do limpador", displayOrder: 5 },
+  {
+    code: "oil",
+    label: "Óleo do motor",
+    description: "Lubrifica e protege as peças internas do motor.",
+    displayOrder: 1,
+  },
+  {
+    code: "brake",
+    label: "Fluido de freio",
+    description: "Transmite a força do pedal para as rodas e faz o carro frear.",
+    displayOrder: 2,
+  },
+  {
+    code: "coolant",
+    label: "Arrefecimento",
+    description: "Controla a temperatura do motor e evita o superaquecimento.",
+    displayOrder: 3,
+  },
+  {
+    code: "transmission",
+    label: "Fluido de transmissão",
+    description: "Lubrifica as engrenagens da caixa de câmbio.",
+    displayOrder: 4,
+  },
+  {
+    code: "washer",
+    label: "Limpador de para-brisa",
+    description: "Limpa o para-brisa e melhora a visibilidade.",
+    displayOrder: 5,
+  },
 ];
 
 const COMPONENT_TYPES = [
@@ -21,11 +56,189 @@ const COMPONENT_TYPES = [
   { code: "fuel_filter", label: "Filtro de combustível", displayOrder: 4 },
 ];
 
+// ---------------------------------------------------------------------------
+// Piloto: Fiat Uno 2016 1.0 Flex.
+// Fonte: "Manual de Uso e Manutenção Fiat Uno", impresso 60355478, edição
+// V/2013 (cobre Vivace 1.0 / Way 1.0 / 1.4). Páginas citadas por item. A
+// edição é anterior ao ano-modelo do piloto — a tela exibe essa ressalva.
+// ---------------------------------------------------------------------------
+
+const PILOT_SOURCE = {
+  name: "Manual de Uso e Manutenção Fiat Uno (impresso 60355478, edição V/2013)",
+  type: "manual" as const,
+  reference: "http://igorbarros.com.br/manuais/Fiat%20Uno.pdf",
+  verifiedAt: new Date("2026-11-20T12:00:00Z"),
+  verifiedBy: "Curadoria Fluido Fácil",
+};
+
+const PILOT_ENGINE = {
+  code: "fiat-fire-1.0-flex",
+  displacement: "1.0",
+  fuelType: "flex" as const,
+  notes:
+    "Fiat Uno Vivace/Way 1.0 Fire Flex. Dados do manual edição V/2013; confirme no manual do seu carro se for outra versão.",
+};
+
+const PILOT_LAYOUT = {
+  code: "fiat-uno-2016",
+  imageStoragePath: "/brand/mapa-motor-piloto.webp",
+  description: "Cofre do motor do Fiat Uno 1.0 Flex visto de frente, capô aberto.",
+};
+
+// Coordenadas em % sobre public/brand/mapa-motor-piloto.webp (960×940).
+const PILOT_HOTSPOTS = [
+  { fluidType: "washer", x: "8.50", y: "33.80", description: "Reservatório do lavador" },
+  { fluidType: "brake", x: "82.60", y: "35.90", description: "Reservatório do fluido de freio" },
+  { fluidType: "coolant", x: "14.20", y: "60.40", description: "Reservatório de expansão" },
+  { fluidType: "oil", x: "69.60", y: "61.80", description: "Vareta e bocal do óleo" },
+];
+
+const PILOT_FLUIDS = [
+  {
+    // E-16 (abastecimentos), E-18 (características), D-3/D-5 (troca), D-9.
+    fluidType: "oil",
+    specification: "Sintético SAE 5W30 — API SL e FIAT 9.55535",
+    viscosity: "5W30",
+    volumeMl: null,
+    volumeWithFilterMl: 2700,
+    volumeWithAcMl: null,
+    intervalKm: 15000,
+    intervalMonths: 12,
+    checkIntervalKm: 500,
+    warnings:
+      "Produto homologado pela Fiat: Selènia K Pure Energy 5W30.",
+  },
+  {
+    // E-16, E-18, D-5 (a cada 2 anos), D-9/D-10.
+    fluidType: "coolant",
+    specification: "50% Coolantup (vermelho, orgânico OAT) + 50% água pura",
+    viscosity: null,
+    volumeMl: 4900,
+    volumeWithFilterMl: null,
+    volumeWithAcMl: 5300,
+    intervalKm: null,
+    intervalMonths: 24,
+    checkIntervalKm: 500,
+    warnings:
+      "Nunca use líquido de arrefecimento verde (não orgânico) nem misture outros aditivos.",
+  },
+  {
+    // E-16, E-18, D-4/D-5 (a cada 24 meses), D-11/D-12.
+    fluidType: "brake",
+    specification: "Fluido sintético DOT 4 (SAE J 1703) — Tutela TOP 4/S",
+    viscosity: null,
+    volumeMl: null,
+    volumeWithFilterMl: null,
+    volumeWithAcMl: null,
+    intervalKm: null,
+    intervalMonths: 24,
+    checkIntervalKm: 500,
+    warnings:
+      "Capacidade do circuito: 0,43 L com ABS ou 0,45 L sem ABS.",
+  },
+  {
+    // E-16, D-5, D-10.
+    fluidType: "washer",
+    specification: "Água pura (opcional: 25% Tutela SC 35 + 75% de água)",
+    viscosity: null,
+    volumeMl: 2300,
+    volumeWithFilterMl: null,
+    volumeWithAcMl: null,
+    intervalKm: null,
+    intervalMonths: null,
+    checkIntervalKm: 500,
+    warnings: null,
+  },
+];
+
+async function seedPilot() {
+  let [source] = await db
+    .select()
+    .from(sources)
+    .where(eq(sources.name, PILOT_SOURCE.name));
+  if (!source) {
+    [source] = await db.insert(sources).values(PILOT_SOURCE).returning();
+  }
+
+  await db.insert(engineLayouts).values(PILOT_LAYOUT).onConflictDoNothing();
+  const [layout] = await db
+    .select()
+    .from(engineLayouts)
+    .where(eq(engineLayouts.code, PILOT_LAYOUT.code));
+
+  await db
+    .insert(engines)
+    .values({ ...PILOT_ENGINE, layoutId: layout.id })
+    .onConflictDoUpdate({
+      target: engines.code,
+      set: { layoutId: layout.id, notes: PILOT_ENGINE.notes },
+    });
+  const [engine] = await db
+    .select()
+    .from(engines)
+    .where(eq(engines.code, PILOT_ENGINE.code));
+
+  // Filhos sem chave natural: substitui o conjunto inteiro.
+  await db
+    .delete(engineLayoutHotspots)
+    .where(eq(engineLayoutHotspots.layoutId, layout.id));
+  await db
+    .insert(engineLayoutHotspots)
+    .values(PILOT_HOTSPOTS.map((h) => ({ ...h, layoutId: layout.id })));
+
+  await db.delete(engineFluids).where(eq(engineFluids.engineId, engine.id));
+  await db
+    .insert(engineFluids)
+    .values(
+      PILOT_FLUIDS.map((f) => ({ ...f, engineId: engine.id, sourceId: source.id })),
+    );
+
+  let [trim] = await db
+    .select()
+    .from(trimEngineMap)
+    .where(
+      and(
+        eq(trimEngineMap.make, "Fiat"),
+        eq(trimEngineMap.model, "Uno"),
+        eq(trimEngineMap.yearFrom, 2016),
+        eq(trimEngineMap.yearTo, 2016),
+      ),
+    );
+  if (!trim) {
+    [trim] = await db
+      .insert(trimEngineMap)
+      .values({
+        make: "Fiat",
+        model: "Uno",
+        yearFrom: 2016,
+        yearTo: 2016,
+        fuelType: "flex",
+        disambiguationHint: "Piloto: só 2016 1.0 Flex, conforme a fonte curada.",
+      })
+      .returning();
+  }
+  await db
+    .delete(trimEngineCandidates)
+    .where(eq(trimEngineCandidates.trimEngineMapId, trim.id));
+  await db
+    .insert(trimEngineCandidates)
+    .values({ trimEngineMapId: trim.id, engineId: engine.id, isPrimary: true });
+}
+
 async function main() {
-  await db.insert(fluidTypes).values(FLUID_TYPES).onConflictDoNothing();
+  for (const ft of FLUID_TYPES) {
+    await db
+      .insert(fluidTypes)
+      .values(ft)
+      .onConflictDoUpdate({
+        target: fluidTypes.code,
+        set: { label: ft.label, description: ft.description },
+      });
+  }
   await db.insert(componentTypes).values(COMPONENT_TYPES).onConflictDoNothing();
+  await seedPilot();
   console.log(
-    `Seed ok: ${FLUID_TYPES.length} fluid_types, ${COMPONENT_TYPES.length} component_types`,
+    `Seed ok: ${FLUID_TYPES.length} fluid_types, ${COMPONENT_TYPES.length} component_types, piloto Fiat Uno 2016 (${PILOT_FLUIDS.length} fluidos, ${PILOT_HOTSPOTS.length} pontos)`,
   );
 }
 

@@ -13,6 +13,7 @@ import {
 } from "@/lib/db/queries/vehicles";
 import { parseVehicleInput } from "@/lib/domain/vehicle";
 import { isValidPlateFormat } from "@/lib/plate";
+import { linkVehicleEngine } from "@/lib/vehicles/engine-link";
 
 // Server Actions são alcançáveis por POST direto (docs Next 16, "Mutating
 // Data"): toda action revalida sessão e posse do veículo por conta própria.
@@ -93,17 +94,21 @@ export async function confirmVehicle(vehicleId: string) {
   const session = await auth();
   if (!session?.user) redirect("/login");
 
-  const confirmed = await confirmVehicleForUser(session.user.id, vehicleId);
-  if (!confirmed) redirect("/garagem");
+  const vehicle = await getVehicleByIdForUser(session.user.id, vehicleId);
+  if (!vehicle) redirect("/garagem");
 
-  await setSelectedVehicle(session.user.id, vehicleId);
+  // Com os dados conferidos, tenta vincular ao motor curado (piloto Uno).
+  await linkVehicleEngine(session.user.id, vehicle);
+  await confirmVehicleForUser(session.user.id, vehicle.id);
+  await setSelectedVehicle(session.user.id, vehicle.id);
   revalidatePath("/", "layout");
   redirect("/inicio");
 }
 
 /**
- * Seleciona o carro (garagem → card) e segue para o destino. Carros ainda não
- * conferidos passam primeiro pela confirmação.
+ * Seleciona o carro (garagem → card) e abre o mapa de fluidos dele ("Minha
+ * garagem → Selecionar carro → Mapa"). Carros ainda não conferidos passam
+ * primeiro pela confirmação.
  */
 export async function selectVehicle(vehicleId: string) {
   const session = await auth();
@@ -112,7 +117,11 @@ export async function selectVehicle(vehicleId: string) {
   const vehicle = await getVehicleByIdForUser(session.user.id, vehicleId);
   if (!vehicle) redirect("/garagem");
 
+  // Cobre carros confirmados antes da curadoria existir (ou de ela mudar).
+  if (vehicle.confirmedAt) await linkVehicleEngine(session.user.id, vehicle);
   await setSelectedVehicle(session.user.id, vehicle.id);
   revalidatePath("/", "layout");
-  redirect(vehicle.confirmedAt ? "/inicio" : `/veiculos/${vehicle.id}/confirmar`);
+  redirect(
+    vehicle.confirmedAt ? `/veiculos/${vehicle.id}/mapa` : `/veiculos/${vehicle.id}/confirmar`,
+  );
 }

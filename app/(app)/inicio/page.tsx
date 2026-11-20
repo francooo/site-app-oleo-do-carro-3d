@@ -13,8 +13,8 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { VehicleImage } from "@/components/vehicle/vehicle-image";
 import { auth } from "@/lib/auth/auth";
 import { getSelectedVehicleForUser } from "@/lib/db/queries/vehicles";
-import type { FluidStatus } from "@/lib/domain/fluid-status";
 import { DASHBOARD_FLUIDS } from "@/lib/domain/fluids";
+import { getVehicleFluidOverview } from "@/lib/fluids/vehicle-fluids";
 import { vehicleDisplayName, vehicleEngineLabel } from "@/lib/domain/vehicle";
 
 export const metadata: Metadata = { title: "Início" };
@@ -42,6 +42,10 @@ export default async function InicioPage() {
   if (!session?.user) redirect("/login");
 
   const vehicle = await getSelectedVehicleForUser(session.user.id);
+  // Status só existe para carro confirmado (dados técnicos dependem disso).
+  const overview = vehicle?.confirmedAt
+    ? await getVehicleFluidOverview(session.user.id, vehicle)
+    : null;
   const firstName = session.user.name?.split(" ")[0];
 
   return (
@@ -64,7 +68,7 @@ export default async function InicioPage() {
             <Link
               href={
                 vehicle.confirmedAt
-                  ? `/veiculos/${vehicle.id}`
+                  ? `/veiculos/${vehicle.id}/mapa`
                   : `/veiculos/${vehicle.id}/confirmar`
               }
               className={`${cardClasses(true)} group relative grid grid-cols-[1fr_55%] items-center gap-2 overflow-hidden rounded-[1.75rem] p-5 pr-9 lg:grid-cols-1 lg:pr-5`}
@@ -113,19 +117,30 @@ export default async function InicioPage() {
 
           <div className="flex flex-col gap-8">
             <section aria-labelledby="status-title">
-              <SectionTitle>
+              <SectionTitle
+                action={
+                  overview ? (
+                    <Link
+                      href={`/veiculos/${vehicle.id}/status`}
+                      className="text-accent-text inline-flex min-h-11 items-center gap-1 text-sm font-semibold"
+                    >
+                      Ver status
+                      <ChevronRight className="h-4 w-4" strokeWidth={2.4} aria-hidden="true" />
+                    </Link>
+                  ) : null
+                }
+              >
                 <span id="status-title">Como está o seu carro?</span>
               </SectionTitle>
               <ul className="grid grid-cols-3 gap-2.5 sm:gap-4">
                 {DASHBOARD_FLUIDS.map((fluid) => {
-                  // Fase 1: status ainda não registrado — "Não informado" com
-                  // texto, nunca só cor (critério de UX §5).
-                  const status: FluidStatus = "nao_informado";
-                  return (
-                    <li
-                      key={fluid.code}
-                      className={`${cardClasses()} flex flex-col gap-3 p-2.5 sm:p-4`}
-                    >
+                  // Sem confirmação/registros: "Não informado" com texto,
+                  // nunca só cor (critério de UX §5).
+                  const status =
+                    overview?.statuses.find((x) => x.code === fluid.code)?.status ??
+                    "nao_informado";
+                  const body = (
+                    <>
                       <FluidIcon
                         fluidKey={fluid.code}
                         className="text-accent h-9 w-9 sm:h-11 sm:w-11"
@@ -138,6 +153,21 @@ export default async function InicioPage() {
                         size="xs"
                         className="mt-auto w-full sm:w-auto sm:self-start"
                       />
+                    </>
+                  );
+                  const box = "flex h-full flex-col gap-3 p-2.5 sm:p-4";
+                  return (
+                    <li key={fluid.code}>
+                      {overview ? (
+                        <Link
+                          href={`/veiculos/${vehicle.id}/fluidos/${fluid.code}`}
+                          className={`${cardClasses(true)} ${box}`}
+                        >
+                          {body}
+                        </Link>
+                      ) : (
+                        <div className={`${cardClasses()} ${box}`}>{body}</div>
+                      )}
                     </li>
                   );
                 })}

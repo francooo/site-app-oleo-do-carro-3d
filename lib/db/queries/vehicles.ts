@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull, lt, or } from "drizzle-orm";
 
 import { db } from "@/lib/db/client";
 import { userPreferences, vehicles } from "@/lib/db/schema";
@@ -112,4 +112,31 @@ export async function confirmVehicleForUser(userId: string, vehicleId: string) {
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 function isUuid(value: string) {
   return UUID_RE.test(value);
+}
+
+/** Grava o motor curado vinculado (ou desfaz o vínculo). */
+export async function setVehicleEngine(
+  userId: string,
+  vehicleId: string,
+  engineId: string | null,
+  status: "confirmed" | "unmatched",
+) {
+  await db
+    .update(vehicles)
+    .set({ engineId, engineMatchStatus: status, pendingTrimEngineMapId: null })
+    .where(and(eq(vehicles.id, vehicleId), eq(vehicles.userId, userId)));
+}
+
+/** Atualiza a quilometragem só se ela aumentou (registro de verificação). */
+export async function bumpVehicleKm(userId: string, vehicleId: string, km: number) {
+  await db
+    .update(vehicles)
+    .set({ currentKm: km, kmUpdatedAt: new Date() })
+    .where(
+      and(
+        eq(vehicles.id, vehicleId),
+        eq(vehicles.userId, userId),
+        or(isNull(vehicles.currentKm), lt(vehicles.currentKm, km)),
+      ),
+    );
 }

@@ -15,6 +15,13 @@
       "when": 1795213417915,
       "tag": "0001_third_rhino",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1795217460338,
+      "tag": "0002_bent_mac_gargan",
+      "breakpoints": true
     }
   ]
 }

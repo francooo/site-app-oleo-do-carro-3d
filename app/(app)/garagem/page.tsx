@@ -10,6 +10,7 @@ import { auth } from "@/lib/auth/auth";
 import { getSelectedVehicleForUser, getVehiclesByUser } from "@/lib/db/queries/vehicles";
 import { summarizeVehicle } from "@/lib/domain/fluid-status";
 import { vehicleDisplayName, vehicleEngineLabel } from "@/lib/domain/vehicle";
+import { getFluidStatusesForVehicles } from "@/lib/fluids/vehicle-fluids";
 import { selectVehicle } from "@/lib/vehicles/actions";
 
 export const metadata: Metadata = { title: "Minha garagem" };
@@ -26,6 +27,7 @@ export default async function GaragemPage() {
     getVehiclesByUser(session.user.id),
     getSelectedVehicleForUser(session.user.id),
   ]);
+  const statusesByVehicle = await getFluidStatusesForVehicles(session.user.id, vehicles);
 
   return (
     <div className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 md:py-10">
@@ -41,9 +43,9 @@ export default async function GaragemPage() {
       {vehicles.length > 0 ? (
         <ul className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {vehicles.map((vehicle) => {
-            // Fase 1: ainda não há status por fluido — vira "Status não
-            // informado" até a tela de status (fase 2) alimentar os dados.
-            const summary = summarizeVehicle([]);
+            const summary = summarizeVehicle(
+              (statusesByVehicle.get(vehicle.id) ?? []).map((x) => x.status),
+            );
             const engine = vehicleEngineLabel(vehicle);
             const isSelected = selected?.id === vehicle.id;
             const name = vehicleDisplayName(vehicle);

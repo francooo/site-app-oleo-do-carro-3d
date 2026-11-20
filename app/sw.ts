@@ -1,6 +1,6 @@
 import { defaultCache } from "@serwist/next/worker";
 import type { PrecacheEntry, SerwistGlobalConfig } from "serwist";
-import { NetworkFirst, Serwist } from "serwist";
+import { CacheFirst, NetworkFirst, Serwist } from "serwist";
 
 declare global {
   interface WorkerGlobalScope extends SerwistGlobalConfig {
@@ -26,6 +26,24 @@ const serwist = new Serwist({
       handler: new NetworkFirst({
         cacheName: "ficha-cache",
       }),
+    },
+    // Telas técnicas do carro (mapa, detalhe, tutorial, status): o usuário
+    // abre no estacionamento/garagem, muitas vezes sem sinal. Navegações
+    // (HTML completo) vão para um cache dedicado; com rede lenta, cai no
+    // cache depois de 4 s.
+    {
+      matcher: ({ request, url }) =>
+        request.mode === "navigate" &&
+        /^\/veiculos\/[^/]+\/(mapa|status|fluidos)(\/|$)/.test(url.pathname),
+      handler: new NetworkFirst({
+        cacheName: "fluidos-paginas",
+        networkTimeoutSeconds: 4,
+      }),
+    },
+    // Imagens de marca/tutorial: imutáveis por versão do app.
+    {
+      matcher: ({ sameOrigin, url }) => sameOrigin && url.pathname.startsWith("/brand/"),
+      handler: new CacheFirst({ cacheName: "brand-assets" }),
     },
     ...defaultCache,
   ],
