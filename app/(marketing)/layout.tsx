@@ -1,21 +1,20 @@
-import { Gauge } from "lucide-react";
 import Link from "next/link";
 
+import { Logo } from "@/components/brand/logo";
 import { buttonClasses } from "@/components/ui/button-styles";
 
 export default function MarketingLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex flex-1 flex-col">
-      <header className="sticky top-0 z-50 border-b border-border/30 bg-surface-low/95 backdrop-blur-sm">
+      <header className="border-copper/20 bg-background/90 sticky top-0 z-50 border-b backdrop-blur-md">
         <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4 sm:px-8">
-          <div className="flex items-center gap-2 font-heading text-lg font-bold text-accent-text">
-            <Gauge className="h-6 w-6" strokeWidth={2} aria-hidden="true" />
-            AutoGuide AI
-          </div>
+          <Link href="/" aria-label="Fluido Fácil — início">
+            <Logo markClassName="h-9 w-9" />
+          </Link>
           <nav className="hidden md:flex md:items-center md:gap-8">
             <a
               href="#funcionalidades"
-              className="text-sm font-medium text-foreground-muted transition-colors hover:text-accent-text"
+              className="text-foreground-muted hover:text-accent-text text-sm font-medium transition-colors"
             >
               Como funciona
             </a>
@@ -33,14 +32,12 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
 
       <main className="flex flex-1 flex-col">{children}</main>
 
-      <footer className="border-t border-border/30 bg-surface-lowest px-4 py-8 sm:px-8">
-        <div className="mx-auto flex w-full max-w-6xl flex-col items-center justify-between gap-4 md:flex-row">
-          <div className="flex items-center gap-2 font-heading text-sm font-bold text-foreground">
-            <Gauge className="h-5 w-5" strokeWidth={2} aria-hidden="true" />
-            AutoGuide AI
-          </div>
-          <p className="text-sm text-foreground-muted">
-            © {new Date().getFullYear()} AutoGuide AI.
+      <footer className="bg-wood-texture text-wood-foreground px-4 py-8 sm:px-8">
+        <div className="mx-auto flex w-full max-w-6xl flex-col items-center justify-between gap-3 text-center md:flex-row md:text-left">
+          <p className="font-heading text-sm font-bold">Fluido Fácil — cuide bem do seu carro</p>
+          <p className="max-w-xl text-xs font-medium">
+            Conteúdo educativo. Não substitui o manual do proprietário nem a orientação de um
+            profissional qualificado. © {new Date().getFullYear()} Fluido Fácil.
           </p>
         </div>
       </footer>

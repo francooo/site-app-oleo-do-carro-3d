@@ -1,43 +1,50 @@
 @import "tailwindcss";
 
-/* Kinetic Logic — sistema escuro (Material Design 3), dark-only por decisão
-   de produto. Valores extraídos do tailwind-config do mockup de referência
-   (fonte de maior confiança que a prosa solta do DESIGN.md, que cita hex de
-   exemplo levemente diferentes dos tokens realmente usados). */
+/* Fluido Fácil — design system v1. Base escura premium + cobre/âmbar +
+   madeira clara. Dark-only por decisão de produto.
+
+   Os valores abaixo ESPELHAM lib/design/tokens.ts (fonte de verdade, também
+   consumida pelo futuro app Expo). lib/design/tokens.test.ts falha se os
+   dois divergirem. Os nomes semânticos (bg-surface, text-accent-text,
+   border-border…) foram mantidos do sistema anterior para que as páginas
+   existentes mudem de paleta sem edição. */
 :root {
   color-scheme: dark;
 
-  /* DESIGN.md usa só Inter — aliasa heading pro mesmo --font-body carregado
-     em app/layout.tsx, pra classe `font-heading` (já usada em várias
-     páginas) continuar funcionando sem editar cada arquivo. */
-  --font-heading: var(--font-body);
+  --background: #11100f;
+  --surface-lowest: #0b0a09;
+  --surface-low: #1a1816;
+  --surface: #262321;
+  --surface-variant: #3a3531;
 
-  --background: #131315;
-  --surface-lowest: #0e0e10;
-  --surface-low: #1b1b1d;
-  --surface: #1f1f21;
-  --surface-variant: #353437;
+  --foreground: #e8d8bd;
+  --foreground-strong: #fbf6ee;
+  --foreground-muted: #b3a48d;
 
-  --foreground: #e4e2e4;
-  --foreground-muted: #c1c6d7;
+  --copper: #c47a2c;
+  --accent: #f0a64a;
+  --accent-hover: #f5b865;
+  --accent-active: #d98f33;
+  --accent-foreground: #1a1209;
+  --accent-text: #f0a64a;
+  --wood: #d7ad78;
+  --wood-dark: #9a6a3a;
+  --wood-foreground: #2a1b0e;
 
-  --accent: #4b8eff;
-  --accent-hover: #005bc1;
-  --accent-active: #004493;
-  --accent-foreground: #ffffff;
-  --accent-text: #adc6ff;
+  --border: #4a3a2b;
 
-  --border: #414755;
+  --success: #4ade80;
+  --success-soft: #0f2a18;
+  --warning: #f0a64a;
+  --warning-soft: #2e1f0c;
+  --error: #f87171;
+  --error-soft: #3a1212;
+  --neutral: #a8a29e;
+  --neutral-soft: #292524;
 
-  --success: #7dda8c;
-  --success-soft: #16331d;
-  --warning: #ffb4aa;
-  --warning-soft: #c5020b;
-  --error: #ffb4ab;
-  --error-soft: #93000a;
-
-  --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 1px 3px rgba(0, 0, 0, 0.4);
-  --shadow-card-hover: 0 8px 24px rgba(0, 0, 0, 0.2);
+  --shadow-card: 0 1px 0 rgba(255, 220, 170, 0.04) inset, 0 8px 24px rgba(0, 0, 0, 0.45);
+  --shadow-card-hover: 0 0 0 1px rgba(240, 166, 74, 0.35), 0 12px 32px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 0 4px rgba(240, 166, 74, 0.18), 0 0 18px rgba(240, 166, 74, 0.55);
 }
 
 @theme inline {
@@ -48,13 +55,18 @@
   --color-surface-variant: var(--surface-variant);
 
   --color-foreground: var(--foreground);
+  --color-foreground-strong: var(--foreground-strong);
   --color-foreground-muted: var(--foreground-muted);
 
+  --color-copper: var(--copper);
   --color-accent: var(--accent);
   --color-accent-hover: var(--accent-hover);
   --color-accent-active: var(--accent-active);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent-text: var(--accent-text);
+  --color-wood: var(--wood);
+  --color-wood-dark: var(--wood-dark);
+  --color-wood-foreground: var(--wood-foreground);
 
   --color-border: var(--border);
 
@@ -64,34 +76,39 @@
   --color-warning-soft: var(--warning-soft);
   --color-error: var(--error);
   --color-error-soft: var(--error-soft);
+  --color-neutral: var(--neutral);
+  --color-neutral-soft: var(--neutral-soft);
 
   --font-sans: var(--font-body);
   --font-heading: var(--font-heading);
 
-  /* Radius — sobrescreve a escala padrão do Tailwind para bater com o
-     DESIGN.md (elementos padrão 12px, containers grandes 16px). */
+  --shadow-card: var(--shadow-card);
+  --shadow-card-hover: var(--shadow-card-hover);
+  --shadow-glow: var(--shadow-glow);
+
   --radius-md: 0.75rem;
   --radius-lg: 1rem;
   --radius-xl: 1.5rem;
+  --radius-2xl: 1.75rem;
 
-  /* Escala tipográfica composta do DESIGN.md */
+  /* Escala tipográfica */
   --text-display-lg: 3rem;
   --text-display-lg--line-height: 3.5rem;
   --text-display-lg--letter-spacing: -0.02em;
-  --text-display-lg--font-weight: 700;
+  --text-display-lg--font-weight: 800;
 
   --text-headline-lg: 2rem;
   --text-headline-lg--line-height: 2.5rem;
   --text-headline-lg--letter-spacing: -0.01em;
   --text-headline-lg--font-weight: 700;
 
-  --text-headline-lg-mobile: 1.5rem;
-  --text-headline-lg-mobile--line-height: 2rem;
+  --text-headline-lg-mobile: 1.625rem;
+  --text-headline-lg-mobile--line-height: 2.125rem;
   --text-headline-lg-mobile--font-weight: 700;
 
-  --text-headline-md: 1.5rem;
-  --text-headline-md--line-height: 2rem;
-  --text-headline-md--font-weight: 600;
+  --text-headline-md: 1.375rem;
+  --text-headline-md--line-height: 1.875rem;
+  --text-headline-md--font-weight: 700;
 
   --text-body-lg: 1.125rem;
   --text-body-lg--line-height: 1.75rem;
@@ -107,8 +124,45 @@
   --text-label-md--font-weight: 600;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+/* Textura de madeira clara (barra inferior, rodapé). Gradiente de fallback
+   enquanto a imagem carrega/offline. */
+@utility bg-wood-texture {
+  background-color: var(--wood);
+  background-image:
+    linear-gradient(180deg, rgba(255, 232, 196, 0.34), rgba(255, 225, 180, 0.2)),
+    url("/brand/madeira.webp");
+  background-size: cover;
+  background-position: center;
+}
+
+/* Título em gradiente creme→âmbar, usado na palavra de destaque dos títulos
+   ("Mapa de *fluidos*", "Fluido *Fácil*"). */
+@utility text-gradient-amber {
+  background-image: linear-gradient(180deg, #f8cf8f 0%, #f0a64a 55%, #c47a2c 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Em @layer base para que utilitários (text-*, outline-*) sempre vençam. */
+@layer base {
+  body {
+    background:
+      radial-gradient(120% 60% at 50% -10%, rgba(196, 122, 44, 0.16), transparent 60%),
+      var(--background);
+    background-attachment: fixed;
+    color: var(--foreground);
+    font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  }
+
+  h1,
+  h2,
+  h3 {
+    color: var(--foreground-strong);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
 }

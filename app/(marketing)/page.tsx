@@ -1,170 +1,136 @@
-import {
-  AlertTriangle,
-  ArrowRight,
-  BarChart3,
-  Car,
-  Droplet,
-  MapPin,
-  PlayCircle,
-  Plug,
-} from "lucide-react";
+import { BellRing, BookOpen, Car, MapPin, ShieldAlert, ShieldCheck } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 
+import { BrakeIcon, CoolantIcon, OilIcon, WasherIcon } from "@/components/icons/fluids";
 import { buttonClasses } from "@/components/ui/button-styles";
+import { Card } from "@/components/ui/card";
+import { CtaLink } from "@/components/ui/cta-link";
+import { IconTile } from "@/components/ui/icon-tile";
+
+const FEATURES = [
+  {
+    icon: MapPin,
+    title: "Mapa de fluidos do seu carro",
+    text: "O capô vira um mapa: toque em cada ponto para saber o que é, qual fluido usar e quanto cabe.",
+  },
+  {
+    icon: BookOpen,
+    title: "Tutoriais passo a passo",
+    text: "Etapas curtas para verificar óleo, freio e arrefecimento — com o que fazer e o que nunca fazer.",
+  },
+  {
+    icon: BellRing,
+    title: "Histórico e lembretes",
+    text: "Registre verificações e trocas com a quilometragem e receba um aviso antes da próxima.",
+  },
+  {
+    icon: Car,
+    title: "Vários carros na garagem",
+    text: "Cada carro mantém seu modelo, versão, motor, status e histórico — é só trocar de carro.",
+  },
+] as const;
+
+const FLUIDS = [
+  { icon: OilIcon, label: "Óleo do motor" },
+  { icon: BrakeIcon, label: "Fluido de freio" },
+  { icon: CoolantIcon, label: "Arrefecimento" },
+  { icon: WasherIcon, label: "Limpador" },
+] as const;
 
 export default function LandingPage() {
   return (
     <>
-      <section className="relative overflow-hidden border-b border-border/30 bg-surface-lowest pt-20 pb-24 sm:pt-24 sm:pb-32">
+      <section className="relative overflow-hidden pt-12 pb-16 sm:pt-20 sm:pb-24">
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 opacity-50 [background-image:linear-gradient(to_right,rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.04)_1px,transparent_1px)] [background-size:40px_40px]"
+          className="bg-copper/15 pointer-events-none absolute top-0 left-1/2 h-3/4 w-3/4 -translate-x-1/2 rounded-full blur-[120px]"
         />
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute top-0 left-1/2 h-3/4 w-3/4 -translate-x-1/2 rounded-full bg-accent/10 blur-[120px]"
-        />
-
-        <div className="relative z-10 mx-auto flex max-w-6xl flex-col items-center gap-12 px-4 sm:px-8 md:flex-row">
-          <div className="w-full space-y-8 text-center md:w-1/2 md:text-left">
-            <span className="inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-3 py-1 text-label-md text-accent-text">
-              <span className="h-2 w-2 rounded-full bg-accent-text" />
-              Curadoria especializada
+        <div className="relative z-10 mx-auto grid max-w-6xl items-center gap-10 px-4 sm:px-8 lg:grid-cols-[1fr_1.1fr]">
+          <div className="space-y-6 text-center lg:text-left">
+            <span className="border-copper/50 bg-surface/70 text-label-md text-accent-text inline-flex items-center gap-2 rounded-full border px-3 py-1">
+              <ShieldCheck className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
+              Feito para quem não é mecânico
             </span>
-
-            <h1 className="text-headline-lg-mobile text-foreground tracking-tight sm:text-display-lg">
-              O que o seu carro usa — e quando trocar.
+            <h1 className="font-heading text-headline-lg-mobile sm:text-display-lg tracking-tight">
+              Seu guia dentro do <span className="text-gradient-amber">capô</span>
             </h1>
-
-            <p className="mx-auto max-w-xl text-body-lg text-foreground-muted md:mx-0">
-              Óleo, fluidos, filtros e intervalos de manutenção específicos para a versão do seu
-              veículo. Sem achismo, sem manual perdido no porta-luvas.
+            <p className="text-body-lg text-foreground-muted mx-auto max-w-xl lg:mx-0">
+              Saiba o que colocar, onde colocar e quando verificar os fluidos do seu carro — com
+              dados da versão exata do seu veículo e a fonte de cada informação.
             </p>
-
-            <div className="flex flex-col gap-4 pt-4 sm:flex-row sm:justify-center md:justify-start">
-              <Link href="/signup" className={`${buttonClasses("primary")} gap-2`}>
-                Criar conta grátis
-                <ArrowRight className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
+            <div className="mx-auto flex max-w-md flex-col gap-3 sm:flex-row lg:mx-0">
+              <CtaLink href="/signup">Começar agora</CtaLink>
+              <Link
+                href="/login"
+                className={`${buttonClasses("secondary", "lg")} w-full sm:w-auto sm:shrink-0`}
+              >
+                Já tenho conta
               </Link>
-              <a href="#funcionalidades" className={`${buttonClasses("secondary")} gap-2`}>
-                Ver como funciona
-                <PlayCircle className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
-              </a>
             </div>
           </div>
 
-          <div className="w-full md:w-1/2">
-            <div className="mx-auto w-full max-w-md rounded-xl border border-border/50 bg-surface p-6 shadow-[var(--shadow-card-hover)]">
-              <div className="flex items-center gap-3 border-b border-border/30 pb-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-surface-variant text-accent-text">
-                  <Car className="h-5 w-5" strokeWidth={2} aria-hidden="true" />
-                </div>
-                <div>
-                  <p className="font-heading text-sm font-semibold text-foreground">
-                    Volkswagen Polo 2020
-                  </p>
-                  <p className="font-mono text-xs text-foreground-muted">ABC1D23</p>
-                </div>
-              </div>
-              <dl className="mt-4 flex flex-col gap-3">
-                <div className="flex items-center justify-between">
-                  <dt className="flex items-center gap-2 text-sm text-foreground-muted">
-                    <Droplet className="h-4 w-4 text-accent-text" strokeWidth={2} aria-hidden="true" />
-                    Óleo do motor
-                  </dt>
-                  <dd className="font-mono text-sm text-foreground">5W30 API SN</dd>
-                </div>
-                <div className="flex items-center justify-between">
-                  <dt className="text-sm text-foreground-muted">Intervalo</dt>
-                  <dd className="font-mono text-sm text-foreground">10.000 km</dd>
-                </div>
-                <div className="flex items-center justify-between">
-                  <dt className="text-sm text-foreground-muted">Filtro de óleo</dt>
-                  <dd className="font-mono text-sm text-foreground">Mann W712</dd>
-                </div>
-              </dl>
-            </div>
-          </div>
+          <Image
+            src="/brand/hero-capo.webp"
+            alt="Cofre do motor aberto com os reservatórios de cada fluido indicados"
+            width={1440}
+            height={780}
+            priority
+            className="border-copper/40 shadow-card h-auto w-full rounded-2xl border"
+          />
         </div>
+
+        <ul className="relative z-10 mx-auto mt-10 grid max-w-3xl grid-cols-2 gap-3 px-4 sm:grid-cols-4 sm:px-8">
+          {FLUIDS.map(({ icon: Icon, label }) => (
+            <li
+              key={label}
+              className="border-copper/40 bg-surface/80 flex items-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-medium"
+            >
+              <Icon className="text-accent h-5 w-5 shrink-0" />
+              {label}
+            </li>
+          ))}
+        </ul>
       </section>
 
-      <section id="funcionalidades" className="mx-auto max-w-6xl px-4 py-24 sm:px-8">
-        <div className="mb-16 text-center">
-          <h2 className="text-headline-lg text-foreground">Feito para quem não é mecânico</h2>
-          <p className="mx-auto mt-4 max-w-2xl text-body-md text-foreground-muted">
-            Confira o que a oficina propõe antes de aprovar o orçamento — com dado específico
-            para a versão do seu carro, não um palpite genérico.
+      <section
+        id="funcionalidades"
+        className="mx-auto w-full max-w-6xl px-4 py-16 sm:px-8 sm:py-24"
+      >
+        <div className="mb-12 text-center">
+          <h2 className="font-heading text-headline-lg-mobile sm:text-headline-lg tracking-tight">
+            Cuidar do carro sem <span className="text-gradient-amber">intimidação</span>
+          </h2>
+          <p className="text-body-md text-foreground-muted mx-auto mt-3 max-w-2xl">
+            Informação técnica por veículo e versão — nunca só pelo nome do modelo — explicada em
+            linguagem simples.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-          <div className="flex flex-col rounded-xl border border-border/50 bg-surface p-8 transition-colors duration-300 hover:border-accent/50 md:col-span-2">
-            <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-lg border border-border/50 bg-surface-variant text-accent-text">
-              <BarChart3 className="h-6 w-6" strokeWidth={2} aria-hidden="true" />
-            </div>
-            <h3 className="mb-3 text-headline-md text-foreground">
-              Especificação certa para a versão do seu carro
-            </h3>
-            <p className="mb-6 max-w-md text-body-md text-foreground-muted">
-              Identificação determinística por placa ou seleção manual — quando duas versões do
-              mesmo modelo diferem, o app mostra as duas em vez de arriscar um dado errado.
-            </p>
-            <div className="mt-auto flex gap-6 border-t border-border/30 pt-6">
-              <div className="flex flex-col">
-                <span className="text-label-md text-accent-text">FONTES POR MOTOR</span>
-                <span className="text-sm font-medium text-foreground">Mínimo de 2</span>
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+          {FEATURES.map(({ icon: Icon, title, text }) => (
+            <Card key={title} className="flex gap-4 p-6">
+              <IconTile>
+                <Icon strokeWidth={2} aria-hidden="true" />
+              </IconTile>
+              <div>
+                <h3 className="font-heading text-lg font-bold">{title}</h3>
+                <p className="text-body-md text-foreground-muted mt-1.5">{text}</p>
               </div>
-              <div className="flex flex-col">
-                <span className="text-label-md text-accent-text">BASE INICIAL</span>
-                <span className="text-sm font-medium text-foreground">10-15 motores</span>
-              </div>
-            </div>
-          </div>
+            </Card>
+          ))}
+        </div>
 
-          <div className="rounded-xl border border-border/50 bg-surface p-8 transition-colors duration-300 hover:border-accent/50">
-            <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-lg border border-border/50 bg-surface-variant text-warning">
-              <AlertTriangle className="h-6 w-6" strokeWidth={2} aria-hidden="true" />
-            </div>
-            <h3 className="mb-3 text-headline-md text-foreground">Avisos que importam</h3>
-            <p className="text-body-md text-foreground-muted">
-              Torque do bujão, motor com corrente de comando, cárter de alumínio — os detalhes
-              que evitam um dano bobo.
-            </p>
-          </div>
-
-          <div className="rounded-xl border border-border/50 bg-surface p-8 transition-colors duration-300 hover:border-accent/50">
-            <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-lg border border-border/50 bg-surface-variant text-accent-text">
-              <Plug className="h-6 w-6" strokeWidth={2} aria-hidden="true" />
-            </div>
-            <h3 className="mb-3 text-headline-md text-foreground">Sem inventar dado</h3>
-            <p className="text-body-md text-foreground-muted">
-              Sem fonte confiável, o app não publica. Nunca preenche um campo com valor genérico
-              só para não deixar em branco.
-            </p>
-          </div>
-
-          <div className="flex flex-col overflow-hidden rounded-xl border border-border/50 bg-surface transition-colors duration-300 hover:border-accent/50 md:col-span-2 md:flex-row">
-            <div className="flex flex-1 flex-col justify-center p-8">
-              <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-lg border border-border/50 bg-surface-variant text-accent-text">
-                <MapPin className="h-6 w-6" strokeWidth={2} aria-hidden="true" />
-              </div>
-              <h3 className="mb-3 text-headline-md text-foreground">
-                Onde fica cada coisa no cofre do motor
-              </h3>
-              <p className="text-body-md text-foreground-muted">
-                Reservatório de freio, expansão do arrefecimento, vareta de óleo — sem ficar
-                adivinhando qual tampa abrir.
-              </p>
-            </div>
-            <div className="relative min-h-[200px] w-full bg-surface-variant/30 md:w-1/2">
-              <div
-                aria-hidden="true"
-                className="absolute inset-0 flex items-center justify-center text-foreground-muted/30"
-              >
-                <Car className="h-20 w-20" strokeWidth={1} />
-              </div>
-            </div>
-          </div>
+        {/* Sem <Card>: a borda vermelha conflitaria com a borda cobre base. */}
+        <div className="border-error/40 bg-surface/90 shadow-card mt-5 flex flex-col gap-4 rounded-2xl border p-6 sm:flex-row sm:items-center">
+          <span className="border-error/50 bg-surface-lowest text-error flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border">
+            <ShieldAlert className="h-6 w-6" strokeWidth={2} aria-hidden="true" />
+          </span>
+          <p className="text-body-md text-foreground-muted">
+            <strong className="text-foreground-strong">Segurança primeiro:</strong> verifique com o
+            motor frio, nunca abra o arrefecimento quente, não misture fluidos e procure um
+            profissional diante de vazamentos ou luzes de advertência.
+          </p>
         </div>
       </section>
     </>

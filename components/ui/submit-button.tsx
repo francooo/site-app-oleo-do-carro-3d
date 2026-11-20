@@ -1,13 +1,15 @@
 import type { ButtonHTMLAttributes } from "react";
 
-import { buttonClasses } from "@/components/ui/button-styles";
+import { type ButtonSize, type ButtonVariant, buttonClasses } from "@/components/ui/button-styles";
 
 type SubmitButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: "primary" | "secondary";
+  variant?: ButtonVariant;
+  size?: ButtonSize;
 };
 
 export function SubmitButton({
   variant = "primary",
+  size = "lg",
   className,
   children,
   ...props
@@ -15,7 +17,7 @@ export function SubmitButton({
   return (
     <button
       type="submit"
-      className={`w-full ${buttonClasses(variant)} ${className ?? ""}`}
+      className={`w-full ${buttonClasses(variant, size)} ${className ?? ""}`}
       {...props}
     >
       {children}

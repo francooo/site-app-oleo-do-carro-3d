@@ -45,3 +45,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# pacote de design bruto (~75 MB) — só os recortes otimizados vão para public/brand
+*.zip

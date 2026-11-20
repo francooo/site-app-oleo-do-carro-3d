@@ -24,11 +24,11 @@ export function TextField({
   const fieldId = id ?? name;
   return (
     <label htmlFor={fieldId} className="flex flex-col gap-1.5">
-      <span className="text-sm font-medium text-foreground-muted">{label}</span>
+      <span className="text-foreground-muted text-sm font-medium">{label}</span>
       <div className="relative">
         {Icon ? (
           <Icon
-            className="pointer-events-none absolute top-1/2 left-3 h-5 w-5 -translate-y-1/2 text-foreground-muted"
+            className="text-foreground-muted pointer-events-none absolute top-1/2 left-3 h-5 w-5 -translate-y-1/2"
             strokeWidth={2}
             aria-hidden="true"
           />
@@ -36,7 +36,7 @@ export function TextField({
         <input
           id={fieldId}
           name={name}
-          className={`min-h-11 w-full rounded-lg border border-border bg-surface py-2 text-base text-foreground outline-none transition-colors placeholder:text-foreground-muted/60 focus:border-accent focus:ring-2 focus:ring-accent/20 ${Icon ? "pl-10" : "pl-3"} ${trailingAction ? "pr-11" : "pr-3"} ${className ?? ""}`}
+          className={`border-border bg-surface-lowest/80 text-foreground placeholder:text-foreground-muted/60 focus:border-accent focus:ring-accent/20 min-h-12 w-full rounded-xl border py-2.5 text-base transition-colors outline-none focus:ring-2 ${Icon ? "pl-10" : "pl-3"} ${trailingAction ? "pr-11" : "pr-3"} ${className ?? ""}`}
           {...props}
         />
         {trailingAction}

@@ -1,19 +1,28 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Sora } from "next/font/google";
 import "./globals.css";
 
-// DESIGN.md ("Kinetic Logic") usa só Inter — sem par heading/body distinto.
-// --font-heading é aliasada para a mesma fonte em globals.css (:root), para
-// não precisar editar as páginas que já usam a classe `font-heading`.
+// Fluido Fácil: título forte (Sora) + corpo de alta legibilidade (Inter) —
+// "tipografia forte para títulos e alta legibilidade para instruções".
 const fontBody = Inter({
   variable: "--font-body",
   subsets: ["latin"],
 });
 
+const fontHeading = Sora({
+  variable: "--font-heading",
+  subsets: ["latin"],
+  weight: ["600", "700", "800"],
+});
+
 export const metadata: Metadata = {
-  title: "AutoGuide AI",
+  title: {
+    default: "Fluido Fácil — Cuide bem do seu carro",
+    template: "%s · Fluido Fácil",
+  },
   description:
-    "O que o seu carro usa e quando trocar — em menos de 30 segundos.",
+    "Seu guia dentro do capô: saiba o que colocar, onde colocar e quando verificar os fluidos do seu carro.",
+  applicationName: "Fluido Fácil",
 };
 
 // viewportFit "cover" + padding com env(safe-area-inset-*) no body evita que
@@ -24,7 +33,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#131315",
+  themeColor: "#11100f",
 };
 
 export default function RootLayout({
@@ -33,7 +42,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR" className={`${fontBody.variable} h-full antialiased`}>
+    <html
+      lang="pt-BR"
+      className={`${fontBody.variable} ${fontHeading.variable} h-full antialiased`}
+    >
       <body className="flex min-h-full flex-col pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
         {children}
       </body>

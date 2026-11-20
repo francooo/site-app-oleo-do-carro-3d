@@ -15,9 +15,7 @@ export default function SignupPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="font-heading text-2xl font-bold tracking-tight text-foreground">
-        Criar conta
-      </h1>
+      <h1 className="font-heading text-2xl font-bold tracking-tight">Criar conta</h1>
 
       <form action={formAction} className="flex flex-col gap-4">
         <TextField
@@ -35,12 +33,12 @@ export default function SignupPage() {
           minLength={8}
           required
         />
-        <label className="flex items-start gap-2 py-1 text-sm text-foreground-muted">
+        <label className="text-foreground-muted flex items-start gap-2 py-1 text-sm">
           <input
             name="acceptedTerms"
             type="checkbox"
             required
-            className="mt-0.5 h-5 w-5 shrink-0 accent-accent"
+            className="accent-accent mt-0.5 h-5 w-5 shrink-0"
           />
           Li e aceito os Termos de Uso e a Política de Privacidade.
         </label>
@@ -52,8 +50,8 @@ export default function SignupPage() {
             <>
               Criar conta
               <ArrowRight
-                className="h-4 w-4 transition-transform group-hover:translate-x-1"
-                strokeWidth={2}
+                className="absolute right-5 h-5 w-5 transition-transform group-hover:translate-x-1"
+                strokeWidth={2.4}
                 aria-hidden="true"
               />
             </>
@@ -61,11 +59,11 @@ export default function SignupPage() {
         </SubmitButton>
       </form>
 
-      <p className="text-center text-sm text-foreground-muted">
+      <p className="text-foreground-muted text-center text-sm">
         Já tem conta?{" "}
         <Link
           href="/login"
-          className="font-medium text-accent-text underline-offset-4 hover:underline"
+          className="text-accent-text font-medium underline-offset-4 hover:underline"
         >
           Entrar
         </Link>

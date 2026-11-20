@@ -2,19 +2,23 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "AutoGuide AI",
-    short_name: "AutoGuide",
+    name: "Fluido Fácil",
+    short_name: "Fluido Fácil",
     description:
-      "O que o seu carro usa e quando trocar — em menos de 30 segundos.",
+      "Seu guia dentro do capô: saiba o que colocar, onde colocar e quando verificar os fluidos do seu carro.",
+    lang: "pt-BR",
     start_url: "/garagem",
     display: "standalone",
-    background_color: "#131315",
-    theme_color: "#4b8eff",
+    background_color: "#11100f",
+    theme_color: "#11100f",
     icons: [
+      { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
       {
-        src: "/icon.png",
+        src: "/icons/maskable-512.png",
         sizes: "512x512",
         type: "image/png",
+        purpose: "maskable",
       },
     ],
   };
