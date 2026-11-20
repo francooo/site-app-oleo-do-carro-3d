@@ -1,60 +1,118 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/lib/auth/auth";
-import { createVehicleForUser } from "@/lib/db/queries/vehicles";
-import { isValidPlateFormat, normalizePlate } from "@/lib/plate";
+import { setSelectedVehicle } from "@/lib/db/queries/preferences";
+import {
+  confirmVehicleForUser,
+  createVehicleForUser,
+  getVehicleByIdForUser,
+  updateVehicleForUser,
+} from "@/lib/db/queries/vehicles";
+import { parseVehicleInput } from "@/lib/domain/vehicle";
+import { isValidPlateFormat } from "@/lib/plate";
+
+// Server Actions são alcançáveis por POST direto (docs Next 16, "Mutating
+// Data"): toda action revalida sessão e posse do veículo por conta própria.
 
 export type ActionState = { error?: string } | undefined;
 
 const UNIQUE_VIOLATION = "23505";
+
+function parseForm(formData: FormData) {
+  const parsed = parseVehicleInput((key) => formData.get(key));
+  if (parsed.ok && parsed.data.plate && !isValidPlateFormat(parsed.data.plate)) {
+    return {
+      ok: false as const,
+      error: "Placa inválida. Use o formato antigo (ABC1234) ou Mercosul (ABC1D23).",
+    };
+  }
+  return parsed;
+}
+
+function isUniqueViolation(error: unknown) {
+  return !!error && typeof error === "object" && "code" in error && error.code === UNIQUE_VIOLATION;
+}
 
 export async function createVehicle(
   _prevState: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
   const session = await auth();
-  if (!session?.user) {
-    return { error: "Sessão expirada. Faça login novamente." };
-  }
+  if (!session?.user) return { error: "Sessão expirada. Faça login novamente." };
 
-  const plateRaw = String(formData.get("plate") ?? "");
-  const make = String(formData.get("make") ?? "").trim();
-  const model = String(formData.get("model") ?? "").trim();
-  const year = Number(formData.get("year"));
-  const currentKmRaw = formData.get("currentKm");
-  const currentKm = currentKmRaw ? Number(currentKmRaw) : null;
-
-  if (!isValidPlateFormat(plateRaw)) {
-    return { error: "Placa inválida. Use o formato antigo (ABC1234) ou Mercosul (ABC1D23)." };
-  }
-  if (!make || !model) {
-    return { error: "Marca e modelo são obrigatórios." };
-  }
-  if (!Number.isInteger(year) || year < 1950 || year > new Date().getFullYear() + 1) {
-    return { error: "Ano inválido." };
-  }
-  if (currentKm !== null && (!Number.isFinite(currentKm) || currentKm < 0)) {
-    return { error: "Quilometragem inválida." };
-  }
+  const parsed = parseForm(formData);
+  if (!parsed.ok) return { error: parsed.error };
 
   let vehicleId: string;
   try {
-    const vehicle = await createVehicleForUser(session.user.id, {
-      plate: normalizePlate(plateRaw),
-      make,
-      model,
-      year,
-      currentKm,
-    });
+    const vehicle = await createVehicleForUser(session.user.id, parsed.data);
     vehicleId = vehicle.id;
   } catch (error) {
-    if (error && typeof error === "object" && "code" in error && error.code === UNIQUE_VIOLATION) {
+    if (isUniqueViolation(error)) {
       return { error: "Você já tem um veículo com essa placa cadastrado." };
     }
     throw error;
   }
 
-  redirect(`/veiculos/${vehicleId}`);
+  revalidatePath("/garagem");
+  redirect(`/veiculos/${vehicleId}/confirmar`);
+}
+
+export async function updateVehicle(
+  vehicleId: string,
+  _prevState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const session = await auth();
+  if (!session?.user) return { error: "Sessão expirada. Faça login novamente." };
+
+  const current = await getVehicleByIdForUser(session.user.id, vehicleId);
+  if (!current) return { error: "Veículo não encontrado." };
+
+  const parsed = parseForm(formData);
+  if (!parsed.ok) return { error: parsed.error };
+
+  try {
+    await updateVehicleForUser(session.user.id, vehicleId, parsed.data, current.currentKm);
+  } catch (error) {
+    if (isUniqueViolation(error)) {
+      return { error: "Você já tem outro veículo com essa placa cadastrado." };
+    }
+    throw error;
+  }
+
+  revalidatePath("/", "layout");
+  redirect(`/veiculos/${vehicleId}/confirmar`);
+}
+
+/** "Confirmar veículo" (tela 03): marca como conferido e já seleciona o carro. */
+export async function confirmVehicle(vehicleId: string) {
+  const session = await auth();
+  if (!session?.user) redirect("/login");
+
+  const confirmed = await confirmVehicleForUser(session.user.id, vehicleId);
+  if (!confirmed) redirect("/garagem");
+
+  await setSelectedVehicle(session.user.id, vehicleId);
+  revalidatePath("/", "layout");
+  redirect("/inicio");
+}
+
+/**
+ * Seleciona o carro (garagem → card) e segue para o destino. Carros ainda não
+ * conferidos passam primeiro pela confirmação.
+ */
+export async function selectVehicle(vehicleId: string) {
+  const session = await auth();
+  if (!session?.user) redirect("/login");
+
+  const vehicle = await getVehicleByIdForUser(session.user.id, vehicleId);
+  if (!vehicle) redirect("/garagem");
+
+  await setSelectedVehicle(session.user.id, vehicle.id);
+  revalidatePath("/", "layout");
+  redirect(vehicle.confirmedAt ? "/inicio" : `/veiculos/${vehicle.id}/confirmar`);
 }

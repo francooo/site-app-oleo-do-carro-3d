@@ -271,12 +271,25 @@ export const vehicles = pgTable(
     userId: text("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    plate: text("plate").notNull(),
+    // Opcional desde o Fluido Fácil: o cadastro (tela 01) identifica o carro
+    // por marca/modelo/ano/versão. Postgres trata NULLs como distintos, então
+    // a unique (user_id, plate) continua valendo só para placas preenchidas.
+    plate: text("plate"),
     vin: text("vin"),
     make: text("make").notNull(),
     model: text("model").notNull(),
     year: integer("year").notNull(),
     trim: text("trim"),
+    /** Versão comercial informada pelo usuário (ex.: "Attractive", "Way"). */
+    version: text("version"),
+    /** Cilindrada como exibida ao usuário (ex.: "1.0"). */
+    engineDisplacement: text("engine_displacement"),
+    /** Mesmo enum dos motores; rótulos em lib/domain/vehicle.ts (FUEL_LABEL). */
+    fuel: fuelTypeEnum("fuel"),
+    /** Muda a capacidade do arrefecimento (ex.: Uno 1.0: 4,9 L vs 5,3 L). */
+    hasAirConditioning: boolean("has_air_conditioning"),
+    /** Preenchido na tela "Confirme seu veículo"; zerado ao editar os dados. */
+    confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
     engineId: uuid("engine_id").references(() => engines.id),
     engineMatchStatus: engineMatchStatusEnum("engine_match_status")
       .notNull()
@@ -333,6 +346,26 @@ export const documents = pgTable("documents", {
 });
 
 // ---------------------------------------------------------------------------
+// Preferências do usuário (1:1 com user). Guarda o carro selecionado — o
+// "contexto" das telas técnicas (critério de UX: o usuário sempre sabe qual
+// carro está vendo) — e as escolhas de notificação do Perfil.
+// ---------------------------------------------------------------------------
+
+export const userPreferences = pgTable("user_preferences", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  selectedVehicleId: uuid("selected_vehicle_id").references(() => vehicles.id, {
+    onDelete: "set null",
+  }),
+  notifyReminders: boolean("notify_reminders").notNull().default(true),
+  notifyPush: boolean("notify_push").notNull().default(false),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+// ---------------------------------------------------------------------------
 // Relations (leitura conveniente via db.query.*; não afeta o schema SQL)
 // ---------------------------------------------------------------------------
 
@@ -349,6 +382,45 @@ export const engineLayoutsRelations = relations(engineLayouts, ({ many }) => ({
   engines: many(engines),
   hotspots: many(engineLayoutHotspots),
 }));
+
+// Lado "one" das relações many() acima — sem eles o db.query não consegue
+// resolver `engine.fluids`/`layout.hotspots` ("not enough information to
+// infer relation").
+export const engineFluidsRelations = relations(engineFluids, ({ one }) => ({
+  engine: one(engines, {
+    fields: [engineFluids.engineId],
+    references: [engines.id],
+  }),
+  type: one(fluidTypes, {
+    fields: [engineFluids.fluidType],
+    references: [fluidTypes.code],
+  }),
+  source: one(sources, {
+    fields: [engineFluids.sourceId],
+    references: [sources.id],
+  }),
+}));
+
+export const componentsRelations = relations(components, ({ one }) => ({
+  engine: one(engines, {
+    fields: [components.engineId],
+    references: [engines.id],
+  }),
+  source: one(sources, {
+    fields: [components.sourceId],
+    references: [sources.id],
+  }),
+}));
+
+export const engineLayoutHotspotsRelations = relations(
+  engineLayoutHotspots,
+  ({ one }) => ({
+    layout: one(engineLayouts, {
+      fields: [engineLayoutHotspots.layoutId],
+      references: [engineLayouts.id],
+    }),
+  }),
+);
 
 export const trimEngineMapRelations = relations(trimEngineMap, ({ many }) => ({
   candidates: many(trimEngineCandidates),
@@ -398,3 +470,13 @@ export const documentsRelations = relations(documents, ({ one }) => ({
     references: [maintenanceRecords.id],
   }),
 }));
+
+export const userPreferencesRelations = relations(
+  userPreferences,
+  ({ one }) => ({
+    selectedVehicle: one(vehicles, {
+      fields: [userPreferences.selectedVehicleId],
+      references: [vehicles.id],
+    }),
+  }),
+);

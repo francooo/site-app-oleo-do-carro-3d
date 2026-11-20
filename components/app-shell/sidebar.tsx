@@ -1,6 +1,6 @@
 "use client";
 
-import { LogOut, Plus } from "lucide-react";
+import { CarFront, LogOut, Plus } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -14,27 +14,53 @@ type SidebarProps = {
     name?: string | null;
     email?: string | null;
   };
+  /** Carro selecionado (contexto das telas técnicas); null sem veículos. */
+  selectedVehicle: { name: string; engine: string } | null;
 };
 
 // Só desktop (md+) — no mobile a navegação equivalente é a BottomNav
 // (components/app-shell/bottom-nav.tsx). Mesmos itens (nav-items.ts).
-export function Sidebar({ user }: SidebarProps) {
+export function Sidebar({ user, selectedVehicle }: SidebarProps) {
   const pathname = usePathname();
   const initial = (user.name ?? user.email ?? "?").charAt(0).toUpperCase();
 
   return (
     <aside className="border-copper/25 bg-surface-lowest/95 fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r md:flex">
       <div className="p-5 pb-4">
-        <Link href="/garagem" aria-label="Fluido Fácil — garagem">
+        <Link href="/inicio" aria-label="Fluido Fácil — início">
           <Logo markClassName="h-10 w-10" tagline="Cuide bem do seu carro" />
         </Link>
       </div>
 
       <div className="px-4">
-        <Link href="/veiculos/novo" className={`${buttonClasses("primary")} mb-6 w-full`}>
+        <Link href="/veiculos/novo" className={`${buttonClasses("primary")} mb-5 w-full`}>
           <Plus className="h-4 w-4" strokeWidth={2.4} aria-hidden="true" />
           Adicionar carro
         </Link>
+
+        {selectedVehicle ? (
+          <Link
+            href="/garagem"
+            className="border-copper/40 bg-surface/80 hover:border-accent/70 mb-5 flex items-center gap-3 rounded-xl border p-3 transition-colors"
+          >
+            <CarFront
+              className="text-accent h-6 w-6 shrink-0"
+              strokeWidth={1.8}
+              aria-hidden="true"
+            />
+            <span className="min-w-0">
+              <span className="text-foreground-muted block text-xs">Carro selecionado</span>
+              <span className="text-foreground-strong block truncate text-sm font-semibold">
+                {selectedVehicle.name}
+              </span>
+              {selectedVehicle.engine ? (
+                <span className="text-foreground-muted block text-xs">
+                  {selectedVehicle.engine}
+                </span>
+              ) : null}
+            </span>
+          </Link>
+        ) : null}
       </div>
 
       <nav aria-label="Navegação principal" className="flex flex-1 flex-col gap-1 px-4">

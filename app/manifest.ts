@@ -7,7 +7,7 @@ export default function manifest(): MetadataRoute.Manifest {
     description:
       "Seu guia dentro do capô: saiba o que colocar, onde colocar e quando verificar os fluidos do seu carro.",
     lang: "pt-BR",
-    start_url: "/garagem",
+    start_url: "/inicio",
     display: "standalone",
     background_color: "#11100f",
     theme_color: "#11100f",

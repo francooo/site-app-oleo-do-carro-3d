@@ -1,4 +1,4 @@
-import { Car, type LucideIcon, Settings } from "lucide-react";
+import { Car, House, type LucideIcon, Settings } from "lucide-react";
 
 export type NavItem = {
   href: string;
@@ -12,6 +12,7 @@ export type NavItem = {
 // Alvo do design system (4 itens): Início, Garagem, Aprender, Perfil — os
 // itens entram aqui conforme as rotas de cada fase ficam prontas.
 export const NAV_ITEMS: NavItem[] = [
+  { href: "/inicio", label: "Início", icon: House },
   { href: "/garagem", label: "Garagem", icon: Car, match: ["/veiculos"] },
   { href: "/configuracoes", label: "Configurações", icon: Settings },
 ];

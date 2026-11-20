@@ -111,6 +111,17 @@ export function FluidDropIcon(props: IconProps) {
   );
 }
 
+/** Motorização — bloco do motor (o lucide não tem um ícone de motor). */
+export function EngineIcon(props: IconProps) {
+  return (
+    <Base {...props}>
+      <path d="M9 5h6M12 5v3" />
+      <path d="M5.5 8h10l2.5 3h2v5h-2l-2.5 3h-8l-2 -2.5h-2v-5.5h2z" />
+      <path d="M2 11.5v4" />
+    </Base>
+  );
+}
+
 const BY_KEY = {
   oil: OilIcon,
   brake: BrakeIcon,

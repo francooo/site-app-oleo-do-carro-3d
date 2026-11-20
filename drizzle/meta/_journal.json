@@ -8,6 +8,13 @@
       "when": 1785708113541,
       "tag": "0000_faithful_black_widow",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1795213417915,
+      "tag": "0001_third_rhino",
+      "breakpoints": true
     }
   ]
 }

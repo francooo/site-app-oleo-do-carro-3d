@@ -1,105 +1,119 @@
-import { Car, Plus } from "lucide-react";
-import Link from "next/link";
+import { ChevronRight, CircleCheck, Plus, TriangleAlert } from "lucide-react";
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
-import { buttonClasses } from "@/components/ui/button-styles";
-import { PageHeader } from "@/components/ui/page-header";
+import { ScreenHeader } from "@/components/app-shell/screen-header";
+import { CtaLink } from "@/components/ui/cta-link";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { VehicleImage } from "@/components/vehicle/vehicle-image";
 import { auth } from "@/lib/auth/auth";
-import { getVehiclesByUser } from "@/lib/db/queries/vehicles";
+import { getSelectedVehicleForUser, getVehiclesByUser } from "@/lib/db/queries/vehicles";
+import { summarizeVehicle } from "@/lib/domain/fluid-status";
+import { vehicleDisplayName, vehicleEngineLabel } from "@/lib/domain/vehicle";
+import { selectVehicle } from "@/lib/vehicles/actions";
 
-// PRD não tem telemetria (OBD2 é non-goal explícito) — a faixa de status do
-// card reflete engine_match_status, o único "status" que de fato existe.
-const STATUS_STYLES: Record<string, { stripClass: string; label: string }> = {
-  confirmed: { stripClass: "bg-success", label: "Motor identificado" },
-  manual_override: { stripClass: "bg-success", label: "Motor identificado" },
-  pending_disambiguation: { stripClass: "bg-warning", label: "Confirmar motor" },
-  unmatched: { stripClass: "bg-border", label: "Aguardando curadoria" },
-};
+export const metadata: Metadata = { title: "Minha garagem" };
 
-const km = new Intl.NumberFormat("pt-BR");
-
+// Tela 02 — Minha garagem: listar e alternar entre veículos. Tocar no card
+// seleciona o carro (contexto das telas técnicas) e abre o Início dele.
 export default async function GaragemPage() {
   const session = await auth();
-  // O guard de sessão do layout (app)/layout.tsx não garante que esta page
-  // nunca rode com sessão nula: em dev, layout e page podem renderizar em
-  // paralelo, e a page chega a executar antes do redirect() do layout
-  // surtir efeito. Checagem redundante aqui evita um TypeError descartado
-  // (o response final já saía correto, mas com erro ruidoso no log).
-  if (!session?.user) {
-    redirect("/login");
-  }
-  const vehicles = await getVehiclesByUser(session.user.id);
+  // O guard do layout (app)/layout.tsx não impede a page de rodar em
+  // paralelo em dev; a checagem redundante evita um TypeError no log.
+  if (!session?.user) redirect("/login");
+
+  const [vehicles, selected] = await Promise.all([
+    getVehiclesByUser(session.user.id),
+    getSelectedVehicleForUser(session.user.id),
+  ]);
 
   return (
-    <div className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 sm:py-10">
-      <PageHeader
-        title="Sua garagem"
-        actions={
-          <Link href="/veiculos/novo" className={buttonClasses("primary")}>
-            Adicionar
-          </Link>
+    <div className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 md:py-10">
+      <ScreenHeader
+        highlight="Minha garagem"
+        subtitle={
+          vehicles.length > 0
+            ? "Escolha o carro que você quer cuidar agora."
+            : "Cadastre seu primeiro carro para começar."
         }
       />
-      <p className="mb-6 text-sm text-foreground-muted">
-        Gerencie os veículos cadastrados na sua garagem.
-      </p>
 
-      <ul className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-        {vehicles.map((vehicle) => {
-          const status = STATUS_STYLES[vehicle.engineMatchStatus] ?? STATUS_STYLES.unmatched;
-          return (
-            <li key={vehicle.id} className="relative">
-              <Link
-                href={`/veiculos/${vehicle.id}`}
-                className="group relative flex h-full flex-col gap-4 overflow-hidden rounded-2xl border border-border/60 bg-surface p-6 pl-7 shadow-[var(--shadow-card)] transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-card-hover)]"
-              >
-                <span
-                  aria-hidden="true"
-                  className={`absolute inset-y-0 left-0 w-1 ${status.stripClass}`}
-                />
+      {vehicles.length > 0 ? (
+        <ul className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          {vehicles.map((vehicle) => {
+            // Fase 1: ainda não há status por fluido — vira "Status não
+            // informado" até a tela de status (fase 2) alimentar os dados.
+            const summary = summarizeVehicle([]);
+            const engine = vehicleEngineLabel(vehicle);
+            const isSelected = selected?.id === vehicle.id;
+            const name = vehicleDisplayName(vehicle);
+            return (
+              <li key={vehicle.id}>
+                <form action={selectVehicle.bind(null, vehicle.id)}>
+                  <button
+                    type="submit"
+                    aria-label={`Abrir ${name}`}
+                    className={`group from-surface/95 to-surface-low/95 shadow-card hover:shadow-card-hover relative grid w-full grid-cols-[1fr_44%] items-center gap-2 overflow-hidden rounded-[1.75rem] border bg-gradient-to-b p-5 pr-9 text-left transition-all active:scale-[0.995] sm:pr-10 ${
+                      isSelected ? "border-accent/80" : "border-copper/45 hover:border-accent/70"
+                    }`}
+                  >
+                    <span className="flex min-w-0 flex-col gap-1">
+                      <span className="font-heading text-foreground-strong text-xl leading-tight font-extrabold sm:text-2xl">
+                        {name}
+                      </span>
+                      <span className="text-foreground-muted text-base">
+                        {engine || "Motorização não informada"}
+                      </span>
+                      <span className="mt-3 flex flex-wrap gap-2">
+                        {vehicle.confirmedAt ? (
+                          <StatusBadge status={summary.status} label={summary.label} />
+                        ) : (
+                          <span className="border-warning/60 bg-warning-soft text-warning inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold whitespace-nowrap">
+                            <TriangleAlert
+                              className="h-3.5 w-3.5"
+                              strokeWidth={2.4}
+                              aria-hidden="true"
+                            />
+                            Confirmar dados
+                          </span>
+                        )}
+                        {isSelected ? (
+                          <span className="text-accent-text inline-flex items-center gap-1.5 px-1 py-1 text-xs font-semibold">
+                            <CircleCheck
+                              className="h-3.5 w-3.5"
+                              strokeWidth={2.4}
+                              aria-hidden="true"
+                            />
+                            Selecionado
+                          </span>
+                        ) : null}
+                      </span>
+                    </span>
 
-                <div>
-                  <h3 className="font-heading text-lg font-semibold text-foreground">
-                    {vehicle.make} {vehicle.model}
-                  </h3>
-                  <p className="mt-1 text-xs text-foreground-muted">
-                    Placa {vehicle.plate} · {vehicle.year}
-                  </p>
-                </div>
+                    <VehicleImage
+                      make={vehicle.make}
+                      model={vehicle.model}
+                      className="h-28 sm:h-36"
+                    />
 
-                <div className="flex h-24 items-center justify-center rounded-xl bg-background text-foreground-muted/40">
-                  <Car className="h-10 w-10" strokeWidth={1.5} aria-hidden="true" />
-                </div>
+                    <ChevronRight
+                      className="text-accent absolute top-1/2 right-3 h-7 w-7 -translate-y-1/2 transition-transform group-hover:translate-x-0.5"
+                      strokeWidth={2.4}
+                      aria-hidden="true"
+                    />
+                  </button>
+                </form>
+              </li>
+            );
+          })}
+        </ul>
+      ) : null}
 
-                <div className="mt-auto flex items-center justify-between border-t border-border/30 pt-4 text-xs">
-                  <span className="text-foreground-muted">{status.label}</span>
-                  {vehicle.currentKm != null ? (
-                    <span className="font-mono text-foreground">{km.format(vehicle.currentKm)} km</span>
-                  ) : null}
-                </div>
-              </Link>
-            </li>
-          );
-        })}
-
-        <li>
-          <Link
-            href="/veiculos/novo"
-            className="flex h-full min-h-[220px] flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border p-6 text-center transition-colors hover:border-accent hover:bg-accent/5"
-          >
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-accent/10 text-accent-text">
-              <Plus className="h-6 w-6" strokeWidth={2} aria-hidden="true" />
-            </div>
-            <p className="font-heading font-semibold text-foreground">
-              {vehicles.length === 0 ? "Adicione seu primeiro veículo" : "Adicionar outro veículo"}
-            </p>
-            <p className="max-w-[220px] text-sm text-foreground-muted">
-              Cadastro por placa (PRD seção 5.2) chega no Sprint 1 — por ora, use o cadastro
-              manual.
-            </p>
-          </Link>
-        </li>
-      </ul>
+      <div className="mt-6 lg:max-w-md">
+        <CtaLink href="/veiculos/novo" icon={Plus}>
+          {vehicles.length > 0 ? "Adicionar carro" : "Cadastrar meu carro"}
+        </CtaLink>
+      </div>
     </div>
   );
 }

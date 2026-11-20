@@ -11,7 +11,7 @@ import { users } from "@/lib/db/schema";
 export type ActionState = { error?: string } | undefined;
 
 export async function signInWithGoogle() {
-  await signIn("google", { redirectTo: "/garagem" });
+  await signIn("google", { redirectTo: "/inicio" });
 }
 
 // Sem try/catch: diferente de signIn("credentials", ...), não há um erro de
@@ -28,7 +28,7 @@ export async function authenticateWithCredentials(
     await signIn("credentials", {
       email: formData.get("email"),
       password: formData.get("password"),
-      redirectTo: "/garagem",
+      redirectTo: "/inicio",
     });
   } catch (error) {
     // signIn() lança um redirect() internamente no sucesso — isso não é um
@@ -70,7 +70,7 @@ export async function registerUser(
   });
 
   try {
-    await signIn("credentials", { email, password, redirectTo: "/garagem" });
+    await signIn("credentials", { email, password, redirectTo: "/inicio" });
   } catch (error) {
     if (error instanceof AuthError) {
       return { error: "Conta criada, mas não foi possível entrar automaticamente. Tente fazer login." };
