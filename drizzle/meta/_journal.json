@@ -22,6 +22,13 @@
       "when": 1795217460338,
       "tag": "0002_bent_mac_gargan",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1795270600946,
+      "tag": "0003_fixed_slyde",
+      "breakpoints": true
     }
   ]
 }

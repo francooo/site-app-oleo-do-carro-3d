@@ -16,9 +16,9 @@ const INTEGRATION_CHECKS = [
     configured: Boolean(process.env.NEON_STORAGE_ENDPOINT),
   },
   { name: "IA (Groq)", configured: Boolean(process.env.GROQ_API_KEY) },
-  // Sempre pendente por enquanto — decisão de fornecedor é spike do Sprint 0
-  // (ver lib/plate-lookup/provider.ts e docs/ROADMAP.md).
-  { name: "Consulta de placa", configured: false },
+  // lib/plate-lookup: principal consultadeplaca.net, reserva APIBrasil.
+  { name: "Placa (consultadeplaca.net)", configured: Boolean(process.env.CDP_API_KEY) },
+  { name: "Placa — reserva (APIBrasil)", configured: Boolean(process.env.APIBRASIL_TOKEN) },
 ];
 
 // Função auxiliar separada (não o corpo do componente) porque `Date.now()`

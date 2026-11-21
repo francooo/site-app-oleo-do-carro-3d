@@ -319,6 +319,12 @@ export const vehicles = pgTable(
     currentKm: integer("current_km"),
     kmUpdatedAt: timestamp("km_updated_at", { withTimezone: true }),
     photoUrl: text("photo_url"),
+    /** Código FIPE da versão escolhida no cadastro pela placa. */
+    fipeCode: text("fipe_code"),
+    /** Consulta de placa que originou o cadastro (nulo = cadastro manual). */
+    plateLookupId: uuid("plate_lookup_id").references(() => plateLookups.id, {
+      onDelete: "set null",
+    }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -328,6 +334,69 @@ export const vehicles = pgTable(
     // e ambos usarem o app (PRD 7).
     unique("vehicles_user_plate_unique").on(table.userId, table.plate),
     index("vehicles_user_id_idx").on(table.userId),
+  ],
+);
+
+// ---------------------------------------------------------------------------
+// Cadastro pela placa (lib/plate-lookup). `plate_lookups` é um cache
+// COMPARTILHADO por placa — cada placa é paga uma vez só — e guarda apenas o
+// que identifica o carro (sem cidade, cor, chassi ou dono: LGPD).
+// `plate_lookup_attempts` registra cada tentativa por usuário: é o funil do
+// ROADMAP e a base dos limites diários. Usuário só lê uma consulta se tiver
+// uma tentativa ligada a ela (lib/db/queries/plate-lookups.ts).
+// ---------------------------------------------------------------------------
+
+export const plateLookups = pgTable(
+  "plate_lookups",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    /** Normalizada (lib/plate.ts): maiúsculas, sem traço. */
+    plate: text("plate").notNull(),
+    /** Fornecedor que respondeu (lib/plate-lookup/provider.ts). */
+    provider: text("provider").notNull(),
+    providerLookupId: text("provider_lookup_id"),
+    requestId: text("request_id"),
+    /** "found" | "not_found". */
+    result: text("result").notNull(),
+    make: text("make"),
+    model: text("model"),
+    version: text("version"),
+    manufactureYear: integer("manufacture_year"),
+    modelYear: integer("model_year"),
+    fuel: fuelTypeEnum("fuel"),
+    engineDisplacement: text("engine_displacement"),
+    fipeCode: text("fipe_code"),
+    /** FipeVersion[] (lib/domain/plate-vehicle.ts). */
+    fipeVersions: jsonb("fipe_versions"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [unique("plate_lookups_plate_unique").on(table.plate)],
+);
+
+export const plateLookupAttempts = pgTable(
+  "plate_lookup_attempts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    plate: text("plate").notNull(),
+    plateLookupId: uuid("plate_lookup_id").references(() => plateLookups.id, {
+      onDelete: "set null",
+    }),
+    /** "cache" ou o nome do fornecedor que foi chamado. */
+    source: text("source").notNull(),
+    /** found | not_found | unavailable | quota_exceeded | not_configured | limit | invalid. */
+    outcome: text("outcome").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("plate_lookup_attempts_user_created_idx").on(table.userId, table.createdAt),
+    index("plate_lookup_attempts_created_idx").on(table.createdAt),
   ],
 );
 
@@ -502,6 +571,18 @@ export const vehiclesRelations = relations(vehicles, ({ one, many }) => ({
     references: [trimEngineMap.id],
   }),
   maintenanceRecords: many(maintenanceRecords),
+  plateLookup: one(plateLookups, {
+    fields: [vehicles.plateLookupId],
+    references: [plateLookups.id],
+  }),
+}));
+
+export const plateLookupAttemptsRelations = relations(plateLookupAttempts, ({ one }) => ({
+  user: one(users, { fields: [plateLookupAttempts.userId], references: [users.id] }),
+  lookup: one(plateLookups, {
+    fields: [plateLookupAttempts.plateLookupId],
+    references: [plateLookups.id],
+  }),
 }));
 
 export const maintenanceRecordsRelations = relations(

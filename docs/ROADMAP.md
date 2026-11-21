@@ -23,7 +23,7 @@ Objetivo: ter o projeto no ar com login funcionando e as decisões que bloqueiam
 
 ### Spikes de decisão
 
-1. **Provider de consulta de placa** — testar na prática (não só ler documentação) pelo menos 2 entre `apiplacas.com.br`, `fipeapi.com.br`/`placafipe.com.br`, WebXcar, Direct Data, usando 10-15 placas reais dos modelos que entrarão na curadoria inicial. Critérios de decisão:
+1. **Provider de consulta de placa** — **decidido (2026-11-21):** principal consultadeplaca.net (consulta básica R$ 0,07, 20 grátis no cadastro, placas de teste TST0001–3), reserva APIBrasil "Agregados com Versão" (R$ 0,08, traz cilindrada), placas.app.br previsto. Complemento gratuito pela FIPE (fipe.api.br). Implementado em `lib/plate-lookup/` com cache por placa (`plate_lookups`) e funil/limites (`plate_lookup_attempts`). Critérios originais do spike: testar na prática (não só ler documentação) pelo menos 2 entre `apiplacas.com.br`, `fipeapi.com.br`/`placafipe.com.br`, WebXcar, Direct Data, usando 10-15 placas reais dos modelos que entrarão na curadoria inicial. Critérios de decisão:
    - Retorna campo de versão/trim (ou chassi, que resolveria a identificação sozinho)?
    - Taxa de cobertura nos modelos-alvo
    - Custo por consulta e política de cache (pode persistir a resposta e não pagar de novo pela mesma placa?)

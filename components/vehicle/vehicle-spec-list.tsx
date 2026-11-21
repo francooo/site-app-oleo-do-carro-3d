@@ -24,8 +24,20 @@ function Missing({ children }: { children: ReactNode }) {
 
 // Lista "ícone + valor" da tela 03 (Confirme seu veículo). Campo ausente
 // aparece em âmbar com texto explícito — nunca só uma linha vazia.
-export function VehicleSpecList({ vehicle }: { vehicle: SpecVehicle }) {
-  const rows: { key: string; icon: ReactNode; label: string; value: ReactNode }[] = [
+export function VehicleSpecList({
+  vehicle,
+  hide = [],
+}: {
+  vehicle: SpecVehicle;
+  /** Linhas a omitir (ex.: "ac" na tela "É este carro?", que pergunta abaixo). */
+  hide?: readonly string[];
+}) {
+  const rows: {
+    key: string;
+    icon: ReactNode;
+    label: string;
+    value: ReactNode;
+  }[] = [
     {
       key: "model",
       icon: <CarFront />,
@@ -74,17 +86,19 @@ export function VehicleSpecList({ vehicle }: { vehicle: SpecVehicle }) {
 
   return (
     <dl className="border-border/70 bg-surface-lowest/60 divide-border/60 divide-y rounded-2xl border px-4">
-      {rows.map((row) => (
-        <div key={row.key} className="flex items-center gap-4 py-3">
-          <IconTile size="sm">{row.icon}</IconTile>
-          <div className="min-w-0">
-            <dt className="text-foreground-muted text-xs">{row.label}</dt>
-            <dd className="font-heading text-foreground-strong text-lg leading-snug font-semibold">
-              {row.value}
-            </dd>
+      {rows
+        .filter((row) => !hide.includes(row.key))
+        .map((row) => (
+          <div key={row.key} className="flex items-center gap-4 py-3">
+            <IconTile size="sm">{row.icon}</IconTile>
+            <div className="min-w-0">
+              <dt className="text-foreground-muted text-xs">{row.label}</dt>
+              <dd className="font-heading text-foreground-strong text-lg leading-snug font-semibold">
+                {row.value}
+              </dd>
+            </div>
           </div>
-        </div>
-      ))}
+        ))}
     </dl>
   );
 }

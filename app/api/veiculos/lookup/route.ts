@@ -1,12 +1,35 @@
 import { NextResponse } from "next/server";
 
-// Fornecedor de consulta de placa é decidido no spike do Sprint 0 (ver
-// docs/ROADMAP.md) — a implementação escolhida satisfaz o contrato em
-// lib/plate-lookup/provider.ts. Até lá, este endpoint reporta
-// explicitamente que não há provedor configurado (nunca inventa dado).
-export async function POST() {
-  return NextResponse.json(
-    { error: "plate_lookup_provider_not_configured" },
-    { status: 501 },
-  );
+import { auth } from "@/lib/auth/auth";
+import { getLookupForUser, rowToPlateVehicle } from "@/lib/db/queries/plate-lookups";
+import { pickFipeVersion } from "@/lib/domain/plate-vehicle";
+import { lookupPlateForUser } from "@/lib/plate-lookup/service";
+
+// Consulta de placa em JSON — mesmo serviço da tela web, para o app Expo
+// (Fase 6, /api/v1). Exige sessão; a chave do fornecedor nunca sai daqui.
+// Corpo: { "plate": "ABC1D23" }.
+export async function POST(request: Request) {
+  const session = await auth();
+  if (!session?.user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  const body = (await request.json().catch(() => null)) as {
+    plate?: unknown;
+  } | null;
+  const plate = typeof body?.plate === "string" ? body.plate : "";
+  const result = await lookupPlateForUser(session.user.id, plate);
+
+  if (result.status !== "found") {
+    const status = result.status === "invalid" ? 422 : result.status === "limit" ? 429 : 200;
+    return NextResponse.json(result, { status });
+  }
+
+  const row = await getLookupForUser(result.lookupId, session.user.id);
+  const vehicle = row ? rowToPlateVehicle(row) : null;
+  const choice = vehicle
+    ? pickFipeVersion({
+        versions: vehicle.fipeVersions,
+        engineDisplacement: vehicle.engineDisplacement,
+      })
+    : null;
+  return NextResponse.json({ ...result, vehicle, versionChoice: choice });
 }

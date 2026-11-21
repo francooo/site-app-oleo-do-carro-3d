@@ -79,6 +79,28 @@ export async function createVehicleForUser(userId: string, input: VehicleInput) 
   return vehicle;
 }
 
+/**
+ * Cadastro pela placa: o usuário já viu e confirmou os dados ("É este
+ * carro?"), então o veículo nasce confirmado e com a origem registrada.
+ */
+export async function createVehicleFromPlateForUser(
+  userId: string,
+  input: VehicleInput & { fipeCode: string | null; plateLookupId: string },
+) {
+  const [vehicle] = await db
+    .insert(vehicles)
+    .values({
+      userId,
+      ...toColumns(input),
+      fipeCode: input.fipeCode,
+      plateLookupId: input.plateLookupId,
+      confirmedAt: new Date(),
+      kmUpdatedAt: input.currentKm != null ? new Date() : null,
+    })
+    .returning();
+  return vehicle;
+}
+
 /** Edita os dados e zera a confirmação — dados novos pedem nova conferência. */
 export async function updateVehicleForUser(
   userId: string,
