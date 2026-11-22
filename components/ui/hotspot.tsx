@@ -17,6 +17,14 @@ type HotspotProps = {
 // A lista textual equivalente é renderizada fora do diagrama (critério §5:
 // "todo ponto 3D precisa ter uma alternativa textual em lista").
 export function Hotspot({ x, y, label, active = false, onSelect, icon }: HotspotProps) {
+  // Ponto perto da borda: o rótulo cresce para dentro da imagem em vez de
+  // ficar centralizado e ser cortado ("mpador de para-brisa").
+  const align =
+    x < 25
+      ? "left-1 origin-top-left"
+      : x > 75
+        ? "right-1 origin-top-right"
+        : "left-1/2 -translate-x-1/2";
   return (
     <button
       type="button"
@@ -41,8 +49,8 @@ export function Hotspot({ x, y, label, active = false, onSelect, icon }: Hotspot
       {icon ? (
         <span
           aria-hidden="true"
-          className={`border-copper/60 bg-surface-lowest/90 text-foreground-strong pointer-events-none absolute left-1/2 mt-16 hidden -translate-x-1/2 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold whitespace-nowrap backdrop-blur sm:flex ${
-            active ? "border-accent" : ""
+          className={`text-foreground-strong pointer-events-none absolute top-full mt-1 hidden items-center gap-1.5 rounded-lg border bg-[#0b0a09]/95 px-3 py-1.5 text-sm font-semibold whitespace-nowrap shadow-[0_4px_16px_rgba(0,0,0,0.7)] backdrop-blur-md sm:flex ${align} ${
+            active ? "border-accent" : "border-copper/70"
           }`}
         >
           {icon}

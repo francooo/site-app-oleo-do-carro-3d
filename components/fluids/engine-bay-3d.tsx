@@ -93,10 +93,10 @@ export default function EngineBay3D({ scene, fluids, selected, onSelect }: Props
             onClick={() => onSelect(active ? null : p.fluid)}
             aria-pressed={active}
             style={{ visibility: "hidden" }}
-            className={`absolute top-0 left-0 z-10 flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-xs font-semibold whitespace-nowrap shadow-[0_0_18px_rgba(240,166,74,0.35)] backdrop-blur transition-[background-color,border-color,opacity] ${
+            className={`absolute top-0 left-0 z-10 flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold whitespace-nowrap shadow-[0_4px_16px_rgba(0,0,0,0.7)] backdrop-blur-md transition-[background-color,border-color,opacity] sm:text-sm ${
               active
                 ? "border-accent bg-accent text-accent-foreground"
-                : "border-copper/70 bg-surface-lowest/85 text-foreground-strong"
+                : "border-copper/70 text-foreground-strong bg-[#0b0a09]/95"
             } ${dimmed ? "opacity-50" : ""}`}
           >
             <FluidIcon fluidKey={p.fluid} className="h-4 w-4" />
