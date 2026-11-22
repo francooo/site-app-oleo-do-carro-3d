@@ -1,18 +1,40 @@
 "use client";
 
-import { ArrowLeftRight, ArrowRight, X } from "lucide-react";
+import { ArrowLeftRight, ArrowRight, Box, Camera, Move3d, X } from "lucide-react";
+import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { FluidIcon } from "@/components/icons/fluids";
 import { buttonClasses } from "@/components/ui/button-styles";
 import { Hotspot } from "@/components/ui/hotspot";
 import { IconTile } from "@/components/ui/icon-tile";
 import { StatusBadge } from "@/components/ui/status-badge";
+import type { EngineScene } from "@/lib/domain/engine-scene";
 import type { FluidStatus } from "@/lib/domain/fluid-status";
 
 import { FluidFacts, type FluidFactsData } from "./fluid-facts";
+
+// three.js só no navegador e só nesta tela (fica fora do bundle do resto).
+const EngineBay3D = dynamic(() => import("./engine-bay-3d"), {
+  ssr: false,
+  loading: () => (
+    <div className="text-foreground-muted flex h-full items-center justify-center text-sm">
+      Carregando o motor em 3D…
+    </div>
+  ),
+});
+
+function hasWebGL() {
+  try {
+    const c = document.createElement("canvas");
+    return Boolean(c.getContext("webgl2") ?? c.getContext("webgl"));
+  } catch {
+    return false;
+  }
+}
+const noopSubscribe = () => () => {};
 
 export type DiagramFluid = {
   code: string;
@@ -27,16 +49,25 @@ type Props = {
   image: { src: string; width: number; height: number; alt: string };
   hotspots: { code: string; x: number; y: number }[];
   fluids: DiagramFluid[];
+  /** Cena 3D do layout, quando existir (lib/domain/engine-scene.ts). */
+  scene?: EngineScene | null;
 };
 
 // Mapa de fluidos: imagem pré-renderizada do cofre + pontos em %. Tocar num
 // ponto abre o painel do fluido (bottom sheet no celular, painel fixo no
 // desktop). A lista textual equivalente fica FORA deste componente, no
 // servidor, para funcionar sem JavaScript (critério de UX §5).
-export function EngineBayDiagram({ image, hotspots, fluids }: Props) {
+export function EngineBayDiagram({ image, hotspots, fluids, scene }: Props) {
   const [selected, setSelected] = useState<string | null>(null);
+  const [view, setView] = useState<"3d" | "photo">("3d");
   const sheetRef = useRef<HTMLDivElement>(null);
   const fluid = fluids.find((f) => f.code === selected) ?? null;
+  // No servidor responde false → a foto é o HTML inicial; o 3D entra no navegador.
+  const webgl = useSyncExternalStore(noopSubscribe, hasWebGL, () => false);
+  const show3D = Boolean(scene) && webgl && view === "3d";
+  const pointFluids = hotspots
+    .map((h) => fluids.find((f) => f.code === h.code))
+    .filter((f): f is DiagramFluid => f != null);
 
   useEffect(() => {
     if (!selected) return;
@@ -49,33 +80,105 @@ export function EngineBayDiagram({ image, hotspots, fluids }: Props) {
 
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
-      <div
-        className="border-copper/40 relative mx-auto w-full max-w-2xl overflow-hidden rounded-[1.75rem] border"
-        style={{ aspectRatio: `${image.width} / ${image.height}` }}
-      >
-        <Image
-          src={image.src}
-          alt={image.alt}
-          fill
-          priority
-          sizes="(min-width: 1024px) 640px, 100vw"
-          className="object-cover"
-        />
-        {hotspots.map((h) => {
-          const f = fluids.find((x) => x.code === h.code);
-          if (!f) return null;
-          return (
-            <Hotspot
-              key={h.code}
-              x={h.x}
-              y={h.y}
-              label={f.label}
-              active={selected === h.code}
-              onSelect={() => setSelected(selected === h.code ? null : h.code)}
-              icon={<FluidIcon fluidKey={h.code} className="text-accent h-4 w-4" />}
+      <div className="mx-auto w-full max-w-2xl">
+        {scene && webgl ? (
+          <div
+            role="group"
+            aria-label="Modo de visualização"
+            className="border-copper/40 bg-surface-low/80 mb-3 flex w-full rounded-full border p-1 text-sm font-semibold"
+          >
+            {(
+              [
+                ["3d", "Motor em 3D", Box],
+                ["photo", "Foto real", Camera],
+              ] as const
+            ).map(([key, text, Icon]) => (
+              <button
+                key={key}
+                type="button"
+                aria-pressed={view === key}
+                onClick={() => setView(key)}
+                className={`flex min-h-11 flex-1 items-center justify-center gap-2 rounded-full transition ${
+                  view === key
+                    ? "bg-accent text-accent-foreground"
+                    : "text-foreground-muted hover:text-foreground"
+                }`}
+              >
+                <Icon className="h-4 w-4" strokeWidth={2.2} aria-hidden="true" />
+                {text}
+              </button>
+            ))}
+          </div>
+        ) : null}
+
+        {show3D && scene ? (
+          <>
+            <div
+              className="border-copper/40 relative w-full touch-none overflow-hidden rounded-[1.75rem] border bg-[radial-gradient(ellipse_at_50%_30%,#2a2420_0%,#11100f_70%)]"
+              style={{ aspectRatio: "1 / 1" }}
+            >
+              <EngineBay3D
+                scene={scene}
+                fluids={pointFluids.map((f) => ({ code: f.code, label: f.label }))}
+                selected={selected}
+                onSelect={setSelected}
+              />
+              <p className="text-foreground-muted pointer-events-none absolute inset-x-0 bottom-3 flex items-center justify-center gap-1.5 text-xs">
+                <Move3d className="h-4 w-4" aria-hidden="true" />
+                Arraste para girar · pinça para aproximar
+              </p>
+            </div>
+            <p className="text-foreground-muted mt-2 text-xs">{scene.caption}</p>
+            {/* Atalhos: no celular os rótulos 3D ficam pequenos. */}
+            <div className="mt-3 flex flex-wrap gap-2">
+              {pointFluids.map((f) => (
+                <button
+                  key={f.code}
+                  type="button"
+                  aria-pressed={selected === f.code}
+                  onClick={() => setSelected(selected === f.code ? null : f.code)}
+                  className={`flex min-h-11 items-center gap-2 rounded-full border px-3.5 text-sm font-semibold transition ${
+                    selected === f.code
+                      ? "border-accent bg-accent/15 text-foreground-strong"
+                      : "border-copper/50 text-foreground hover:border-accent"
+                  }`}
+                >
+                  <FluidIcon fluidKey={f.code} className="text-accent h-4 w-4" />
+                  {f.label}
+                </button>
+              ))}
+            </div>
+          </>
+        ) : (
+          <div
+            className="border-copper/40 relative mx-auto w-full max-w-2xl overflow-hidden rounded-[1.75rem] border"
+            style={{ aspectRatio: `${image.width} / ${image.height}` }}
+          >
+            <Image
+              src={image.src}
+              alt={image.alt}
+              fill
+              priority
+              sizes="(min-width: 1024px) 640px, 100vw"
+              className="object-cover"
             />
-          );
-        })}
+            {hotspots.map((h) => {
+              const f = fluids.find((x) => x.code === h.code);
+              if (!f) return null;
+              return (
+                <Hotspot
+                  key={h.code}
+                  x={h.x}
+                  y={h.y}
+                  label={f.label}
+                  active={selected === h.code}
+                  onSelect={() => setSelected(selected === h.code ? null : h.code)}
+                  icon={<FluidIcon fluidKey={h.code} className="text-accent h-4 w-4" />}
+                />
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Desktop: painel fixo à direita. */}
@@ -87,7 +190,8 @@ export function EngineBayDiagram({ image, hotspots, fluids }: Props) {
             <p className="font-heading text-foreground-strong mb-1 text-lg font-bold">
               Toque em um ponto âmbar
             </p>
-            Cada ponto mostra onde fica um reservatório. Ou use a lista logo abaixo.
+            Cada ponto mostra onde fica um reservatório e qual fluido vai nele. Ou use a lista logo
+            abaixo.
           </div>
         )}
       </aside>

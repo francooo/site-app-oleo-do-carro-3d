@@ -8,6 +8,7 @@ import { FluidIcon } from "@/components/icons/fluids";
 import { cardClasses } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { VehicleContextBar } from "@/components/vehicle/vehicle-context-bar";
+import { getEngineScene } from "@/lib/domain/engine-scene";
 import { loadVehicleFluids } from "@/lib/fluids/load";
 
 export const metadata: Metadata = { title: "Mapa de fluidos" };
@@ -55,6 +56,7 @@ export default async function MapaPage({ params }: { params: Promise<{ vehicleId
             alt: `Cofre do motor do ${vehicle.make} ${vehicle.model} com o capô aberto`,
           }}
           hotspots={hotspots}
+          scene={getEngineScene(layout.code)}
           fluids={fluids.map((f) => ({
             code: f.code,
             label: f.label,
