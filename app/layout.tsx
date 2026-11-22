@@ -23,6 +23,11 @@ export const metadata: Metadata = {
   description:
     "Seu guia dentro do capô: saiba o que colocar, onde colocar e quando verificar os fluidos do seu carro.",
   applicationName: "Fluido Fácil",
+  // Prova de dono no Google Search Console (Segurança → pedir revisão se o
+  // Chrome marcar o site como perigoso). O código não é segredo.
+  ...(process.env.GOOGLE_SITE_VERIFICATION
+    ? { verification: { google: process.env.GOOGLE_SITE_VERIFICATION } }
+    : {}),
 };
 
 // viewportFit "cover" + padding com env(safe-area-inset-*) no body evita que
