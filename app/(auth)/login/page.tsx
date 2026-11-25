@@ -2,7 +2,8 @@
 
 import { ArrowRight, Mail } from "lucide-react";
 import Link from "next/link";
-import { useActionState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useActionState } from "react";
 
 import { authenticateWithCredentials, signInWithGoogle } from "@/lib/auth/actions";
 import { buttonClasses } from "@/components/ui/button-styles";
@@ -10,6 +11,24 @@ import { FormError } from "@/components/ui/form-error";
 import { PasswordField } from "@/components/ui/password-field";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { TextField } from "@/components/ui/text-field";
+
+// Erros que o Auth.js devolve em /login?error=… depois do login com Google.
+const OAUTH_ERRORS: Record<string, string> = {
+  OAuthAccountNotLinked:
+    "Já existe uma conta com esse e-mail. Entre com e-mail e senha ou tente o Google de novo.",
+  AccessDenied: "O acesso foi negado. Tente de novo ou entre com e-mail e senha.",
+  Configuration: "O login com Google está indisponível agora. Entre com e-mail e senha.",
+};
+
+function OAuthError() {
+  const code = useSearchParams().get("error");
+  if (!code) return null;
+  return (
+    <FormError>
+      {OAUTH_ERRORS[code] ?? "Não foi possível entrar com o Google. Tente de novo."}
+    </FormError>
+  );
+}
 
 export default function LoginPage() {
   const [state, formAction, pending] = useActionState(authenticateWithCredentials, undefined);
@@ -29,6 +48,9 @@ export default function LoginPage() {
         />
         <PasswordField label="Senha" name="password" autoComplete="current-password" required />
         {state?.error ? <FormError>{state.error}</FormError> : null}
+        <Suspense fallback={null}>
+          <OAuthError />
+        </Suspense>
         <SubmitButton disabled={pending}>
           {pending ? (
             "Entrando…"

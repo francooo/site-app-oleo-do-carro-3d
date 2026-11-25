@@ -22,7 +22,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     signIn: "/login",
   },
   providers: [
-    Google,
+    // O Google só devolve e-mail verificado, então quem entra com Google prova
+    // que é dono do e-mail: pode entrar na conta já criada com esse e-mail
+    // (senão o Auth.js recusa com OAuthAccountNotLinked). A senha que ninguém
+    // comprovou é apagada no evento linkAccount abaixo.
+    Google({ allowDangerousEmailAccountLinking: true }),
     Credentials({
       credentials: {
         email: { label: "E-mail" },
@@ -48,6 +52,25 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       },
     }),
   ],
+  events: {
+    // O cadastro por senha não confirma o e-mail. Se a conta nunca teve o
+    // e-mail comprovado, a senha pode ter sido criada por outra pessoa com o
+    // e-mail de quem agora entrou pelo Google — por isso ela é apagada e o
+    // e-mail passa a contar como verificado.
+    linkAccount: async ({ user, account }) => {
+      if (account.provider !== "google" || !user.id) return;
+      const [row] = await db
+        .select({ emailVerified: users.emailVerified })
+        .from(users)
+        .where(eq(users.id, user.id))
+        .limit(1);
+      if (!row || row.emailVerified) return;
+      await db
+        .update(users)
+        .set({ emailVerified: new Date(), passwordHash: null })
+        .where(eq(users.id, user.id));
+    },
+  },
   callbacks: {
     session: async ({ session, token }) => {
       if (session.user && token.sub) {
