@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeftRight, ArrowRight, Box, Camera, Move3d, X } from "lucide-react";
+import { ArrowLeftRight, ArrowRight, Box, Camera, LayoutGrid, Move3d, X } from "lucide-react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
@@ -14,6 +14,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import type { EngineScene } from "@/lib/domain/engine-scene";
 import type { FluidStatus } from "@/lib/domain/fluid-status";
 
+import { EngineBayPlan, type PlanData } from "./engine-bay-plan";
 import { FluidFacts, type FluidFactsData } from "./fluid-facts";
 
 // three.js só no navegador e só nesta tela (fica fora do bundle do resto).
@@ -46,7 +47,11 @@ export type DiagramFluid = {
 };
 
 type Props = {
-  image: { src: string; width: number; height: number; alt: string };
+  /** Foto curada do cofre. Sem foto, o mapa 2D é a planta gerada (`plan`). */
+  image?: { src: string; width: number; height: number; alt: string } | null;
+  /** Planta 2D gerada da ficha de posições (lib/domain/bay-model.ts). */
+  plan?: PlanData | null;
+  /** Pontos em % sobre a foto ou sobre a planta. */
   hotspots: { code: string; x: number; y: number }[];
   fluids: DiagramFluid[];
   /** Cena 3D do layout, quando existir (lib/domain/engine-scene.ts). */
@@ -57,9 +62,9 @@ type Props = {
 // ponto abre o painel do fluido (bottom sheet no celular, painel fixo no
 // desktop). A lista textual equivalente fica FORA deste componente, no
 // servidor, para funcionar sem JavaScript (critério de UX §5).
-export function EngineBayDiagram({ image, hotspots, fluids, scene }: Props) {
+export function EngineBayDiagram({ image, plan, hotspots, fluids, scene }: Props) {
   const [selected, setSelected] = useState<string | null>(null);
-  const [view, setView] = useState<"3d" | "photo">("3d");
+  const [view, setView] = useState<"3d" | "flat">("3d");
   const sheetRef = useRef<HTMLDivElement>(null);
   const fluid = fluids.find((f) => f.code === selected) ?? null;
   // No servidor responde false → a foto é o HTML inicial; o 3D entra no navegador.
@@ -68,6 +73,47 @@ export function EngineBayDiagram({ image, hotspots, fluids, scene }: Props) {
   const pointFluids = hotspots
     .map((h) => fluids.find((f) => f.code === h.code))
     .filter((f): f is DiagramFluid => f != null);
+
+  // Na foto, rótulo ao lado do ponto; na planta (pontos mais juntos), ícone
+  // dentro do ponto e os nomes nos atalhos logo abaixo.
+  const hotspotButtons = hotspots.map((h) => {
+    const f = fluids.find((x) => x.code === h.code);
+    if (!f) return null;
+    const icon = <FluidIcon fluidKey={h.code} className="text-accent h-4 w-4" />;
+    return (
+      <Hotspot
+        key={h.code}
+        x={h.x}
+        y={h.y}
+        label={f.label}
+        active={selected === h.code}
+        onSelect={() => setSelected(selected === h.code ? null : h.code)}
+        icon={image ? icon : undefined}
+        glyph={image ? undefined : icon}
+      />
+    );
+  });
+
+  const shortcuts = (
+    <div className="mt-3 flex flex-wrap gap-2">
+      {pointFluids.map((f) => (
+        <button
+          key={f.code}
+          type="button"
+          aria-pressed={selected === f.code}
+          onClick={() => setSelected(selected === f.code ? null : f.code)}
+          className={`flex min-h-11 items-center gap-2 rounded-full border px-3.5 text-sm font-semibold transition ${
+            selected === f.code
+              ? "border-accent bg-accent/15 text-foreground-strong"
+              : "border-copper/50 text-foreground hover:border-accent"
+          }`}
+        >
+          <FluidIcon fluidKey={f.code} className="text-accent h-4 w-4" />
+          {f.label}
+        </button>
+      ))}
+    </div>
+  );
 
   useEffect(() => {
     if (!selected) return;
@@ -90,7 +136,9 @@ export function EngineBayDiagram({ image, hotspots, fluids, scene }: Props) {
             {(
               [
                 ["3d", "Motor em 3D", Box],
-                ["photo", "Foto real", Camera],
+                image
+                  ? (["flat", "Foto real", Camera] as const)
+                  : (["flat", "Planta do cofre", LayoutGrid] as const),
               ] as const
             ).map(([key, text, Icon]) => (
               <button
@@ -130,26 +178,9 @@ export function EngineBayDiagram({ image, hotspots, fluids, scene }: Props) {
             </div>
             <p className="text-foreground-muted mt-2 text-xs">{scene.caption}</p>
             {/* Atalhos: no celular os rótulos 3D ficam pequenos. */}
-            <div className="mt-3 flex flex-wrap gap-2">
-              {pointFluids.map((f) => (
-                <button
-                  key={f.code}
-                  type="button"
-                  aria-pressed={selected === f.code}
-                  onClick={() => setSelected(selected === f.code ? null : f.code)}
-                  className={`flex min-h-11 items-center gap-2 rounded-full border px-3.5 text-sm font-semibold transition ${
-                    selected === f.code
-                      ? "border-accent bg-accent/15 text-foreground-strong"
-                      : "border-copper/50 text-foreground hover:border-accent"
-                  }`}
-                >
-                  <FluidIcon fluidKey={f.code} className="text-accent h-4 w-4" />
-                  {f.label}
-                </button>
-              ))}
-            </div>
+            {shortcuts}
           </>
-        ) : (
+        ) : image ? (
           <div
             className="border-copper/40 relative mx-auto w-full max-w-2xl overflow-hidden rounded-[1.75rem] border"
             style={{ aspectRatio: `${image.width} / ${image.height}` }}
@@ -162,23 +193,18 @@ export function EngineBayDiagram({ image, hotspots, fluids, scene }: Props) {
               sizes="(min-width: 1024px) 640px, 100vw"
               className="object-cover"
             />
-            {hotspots.map((h) => {
-              const f = fluids.find((x) => x.code === h.code);
-              if (!f) return null;
-              return (
-                <Hotspot
-                  key={h.code}
-                  x={h.x}
-                  y={h.y}
-                  label={f.label}
-                  active={selected === h.code}
-                  onSelect={() => setSelected(selected === h.code ? null : h.code)}
-                  icon={<FluidIcon fluidKey={h.code} className="text-accent h-4 w-4" />}
-                />
-              );
-            })}
+            {hotspotButtons}
           </div>
-        )}
+        ) : plan ? (
+          <>
+            <EngineBayPlan plan={plan}>{hotspotButtons}</EngineBayPlan>
+            <p className="text-foreground-muted mt-2 text-xs">
+              Planta ilustrativa do cofre visto de frente, com o capô aberto — posições conforme a
+              figura do manual.
+            </p>
+            {shortcuts}
+          </>
+        ) : null}
       </div>
 
       {/* Desktop: painel fixo à direita. */}

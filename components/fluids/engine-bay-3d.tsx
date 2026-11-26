@@ -118,6 +118,7 @@ function LabelProjector({
 }) {
   const v = useMemo(() => new THREE.Vector3(), []);
   useFrame(({ camera, size }) => {
+    const boxes: LabelBox[] = [];
     for (const p of points) {
       const el = labelEls.current[p.fluid];
       if (!el) continue;
@@ -133,13 +134,47 @@ function LabelProjector({
       }
       // Perto da borda: empurra para dentro para o texto não cortar.
       const halfW = el.offsetWidth / 2;
-      placeLabel(el, [Math.min(Math.max(px, halfW + 6), size.width - halfW - 6), sy]);
+      boxes.push({
+        el,
+        x: Math.min(Math.max(px, halfW + 6), size.width - halfW - 6),
+        y: sy,
+        w: el.offsetWidth,
+        h: el.offsetHeight,
+      });
     }
+    for (const b of separateLabels(boxes)) placeLabel(b.el, [b.x, b.y]);
   });
   return null;
 }
 
 const LABEL_LIFT = 0.2;
+
+type LabelBox = { el: HTMLElement; x: number; y: number; w: number; h: number };
+
+/**
+ * Rótulos que se cruzam na tela (pontos próximos na perspectiva): de cima
+ * para baixo, empurra para cima o rótulo que encosta num já posicionado.
+ */
+function separateLabels(boxes: LabelBox[]) {
+  const GAP = 4;
+  const placed: LabelBox[] = [];
+  for (const b of [...boxes].sort((a, c) => c.y - a.y)) {
+    let y = b.y;
+    for (let moved = true, guard = 0; moved && guard < 8; guard++) {
+      moved = false;
+      for (const o of placed) {
+        const overlapX = Math.abs(b.x - o.x) < (b.w + o.w) / 2 + GAP;
+        const overlapY = Math.abs(y - o.y) < (b.h + o.h) / 2 + GAP;
+        if (overlapX && overlapY) {
+          y = o.y - (b.h + o.h) / 2 - GAP;
+          moved = true;
+        }
+      }
+    }
+    placed.push({ ...b, y: Math.max(y, b.h / 2 + 4) });
+  }
+  return placed;
+}
 
 // Escrita direta no DOM a cada quadro (fora do React, de propósito: evita
 // re-render 60x por segundo).

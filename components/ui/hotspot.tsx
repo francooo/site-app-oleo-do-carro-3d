@@ -9,14 +9,17 @@ type HotspotProps = {
   label: string;
   active?: boolean;
   onSelect?: () => void;
+  /** Rótulo visível no desktop (com este ícone). Sem ele, só o ponto. */
   icon?: ReactNode;
+  /** Desenho dentro do ponto (planta 2D: ícone do fluido no lugar do miolo). */
+  glyph?: ReactNode;
 };
 
 // Ponto de interação âmbar com brilho (componente recorrente do design
 // system). É um <button> real: navegável por teclado e com nome acessível.
 // A lista textual equivalente é renderizada fora do diagrama (critério §5:
 // "todo ponto 3D precisa ter uma alternativa textual em lista").
-export function Hotspot({ x, y, label, active = false, onSelect, icon }: HotspotProps) {
+export function Hotspot({ x, y, label, active = false, onSelect, icon, glyph }: HotspotProps) {
   // Ponto perto da borda: o rótulo cresce para dentro da imagem em vez de
   // ficar centralizado e ser cortado ("mpador de para-brisa").
   const align =
@@ -40,11 +43,11 @@ export function Hotspot({ x, y, label, active = false, onSelect, icon }: Hotspot
       />
       <span
         aria-hidden="true"
-        className={`border-accent bg-surface-lowest/70 shadow-glow relative flex h-6 w-6 items-center justify-center rounded-full border-2 transition-transform group-hover:scale-110 ${
-          active ? "scale-125" : ""
-        }`}
+        className={`border-accent shadow-glow relative flex items-center justify-center rounded-full border-2 transition-transform group-hover:scale-110 ${
+          glyph ? "bg-surface-lowest h-9 w-9" : "bg-surface-lowest/70 h-6 w-6"
+        } ${active ? "scale-125" : ""}`}
       >
-        <span className="h-2.5 w-2.5 rounded-full bg-[#fff1d6]" />
+        {glyph ?? <span className="h-2.5 w-2.5 rounded-full bg-[#fff1d6]" />}
       </span>
       {icon ? (
         <span

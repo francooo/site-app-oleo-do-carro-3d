@@ -8,12 +8,12 @@ import { FluidIcon } from "@/components/icons/fluids";
 import { cardClasses } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { VehicleContextBar } from "@/components/vehicle/vehicle-context-bar";
-import { getEngineScene } from "@/lib/domain/engine-scene";
+import { getLayoutVisuals, planEngine, planParts } from "@/lib/domain/bay-model";
 import { loadVehicleFluids } from "@/lib/fluids/load";
 
 export const metadata: Metadata = { title: "Mapa de fluidos" };
 
-// Proporção real de public/brand/mapa-motor-piloto.webp.
+// Proporção real das fotos curadas (hoje só public/brand/mapa-motor-piloto.webp).
 const LAYOUT_IMAGE_SIZE = { width: 960, height: 940 };
 
 // Mapa de fluidos (referência mapa-fluidos-fiat-uno.png). O mapa é um atalho
@@ -24,6 +24,22 @@ export default async function MapaPage({ params }: { params: Promise<{ vehicleId
   const { vehicle, sheet, fluids } = await loadVehicleFluids(vehicleId);
   const layout = sheet?.layout;
   const sourceName = sheet?.fluids[0]?.source?.name ?? null;
+  // Ficha de posições → cena 3D gerada e planta 2D (cofre sem foto curada).
+  const visuals = getLayoutVisuals(layout?.code);
+  const plan = visuals.sheet
+    ? {
+        title: visuals.sheet.title,
+        engine: planEngine(visuals.sheet),
+        parts: planParts(visuals.sheet),
+      }
+    : null;
+  const image = layout?.imageStoragePath
+    ? {
+        src: layout.imageStoragePath,
+        ...LAYOUT_IMAGE_SIZE,
+        alt: `Cofre do motor do ${vehicle.make} ${vehicle.model} com o capô aberto`,
+      }
+    : null;
   const hotspots =
     layout?.hotspots
       .filter((h) => h.fluidType)
@@ -50,15 +66,12 @@ export default async function MapaPage({ params }: { params: Promise<{ vehicleId
         </p>
       ) : null}
 
-      {layout?.imageStoragePath && hotspots.length > 0 ? (
+      {(image || plan) && hotspots.length > 0 ? (
         <EngineBayDiagram
-          image={{
-            src: layout.imageStoragePath,
-            ...LAYOUT_IMAGE_SIZE,
-            alt: `Cofre do motor do ${vehicle.make} ${vehicle.model} com o capô aberto`,
-          }}
+          image={image}
+          plan={image ? null : plan}
           hotspots={hotspots}
-          scene={getEngineScene(layout.code)}
+          scene={visuals.scene}
           fluids={fluids.map((f) => ({
             code: f.code,
             label: f.label,

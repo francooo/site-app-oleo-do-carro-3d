@@ -1,6 +1,8 @@
 import { and, eq } from "drizzle-orm";
 
 import { db } from "../lib/db/client";
+import { planHotspots } from "../lib/domain/bay-model";
+import { getBayPositionSheet } from "../lib/domain/bay-positions";
 import {
   componentTypes,
   engineFluids,
@@ -164,7 +166,7 @@ type EngineDef = {
     notes: string;
   };
   /** Sem layout = só a ficha dos fluidos (nível 1), ainda sem mapa do cofre. */
-  layout: typeof PILOT_LAYOUT | null;
+  layout: { code: string; imageStoragePath: string | null; description: string } | null;
   hotspots: typeof PILOT_HOTSPOTS;
   fluids: FluidDef[];
   trims: { make: string; model: string; yearFrom: number; yearTo: number; hint: string }[];
@@ -178,7 +180,13 @@ async function seedEngine(def: EngineDef) {
 
   let layoutId: string | null = null;
   if (def.layout) {
-    await db.insert(engineLayouts).values(def.layout).onConflictDoNothing();
+    await db
+      .insert(engineLayouts)
+      .values(def.layout)
+      .onConflictDoUpdate({
+        target: engineLayouts.code,
+        set: { imageStoragePath: def.layout.imageStoragePath, description: def.layout.description },
+      });
     const [layout] = await db
       .select()
       .from(engineLayouts)
@@ -265,7 +273,7 @@ async function seedEngine(def: EngineDef) {
 // MY21, cobre hatch e sedan e as duas motorizações). Páginas = numeração
 // impressa. O manual MY20 do Onix Plus traz os mesmos valores. Segunda fonte
 // (óleo 5W30 dexos1 Gen 2 e 3,75 L): Valvoline e revista O Mecânico.
-// Ainda sem mapa do cofre (nível 1: só a ficha dos fluidos).
+// Mapa do cofre: planta 2D e 3D gerados da ficha de posições (figura p.167).
 // ---------------------------------------------------------------------------
 
 const ONIX_SOURCE = {
@@ -337,6 +345,20 @@ const ONIX_TURBO_FLUIDS: FluidDef[] = [
   },
 ];
 
+// Sem foto curada: a planta 2D e o 3D saem da ficha de posições
+// (lib/domain/bay-positions.ts); os pontos clicáveis também.
+const ONIX_TURBO_SHEET = getBayPositionSheet("chevrolet-onix-turbo-2020")!;
+const ONIX_TURBO_LAYOUT = {
+  code: ONIX_TURBO_SHEET.layoutCode,
+  imageStoragePath: null,
+  description: `${ONIX_TURBO_SHEET.title} visto de frente, capô aberto (planta gerada da figura p.${ONIX_TURBO_SHEET.source.figurePage} do manual).`,
+};
+const ONIX_TURBO_HOTSPOTS = planHotspots(ONIX_TURBO_SHEET).map((h) => ({
+  ...h,
+  x: h.x.toFixed(2),
+  y: h.y.toFixed(2),
+}));
+
 const ENGINES: EngineDef[] = [
   {
     source: PILOT_SOURCE,
@@ -365,8 +387,8 @@ const ENGINES: EngineDef[] = [
       notes:
         "Chevrolet Onix/Onix Plus 1.0 Turbo Flex (116 cv). Dados do manual MY21; o 1.0 aspirado é outro motor (óleo 0W20).",
     },
-    layout: null,
-    hotspots: [],
+    layout: ONIX_TURBO_LAYOUT,
+    hotspots: ONIX_TURBO_HOTSPOTS,
     fluids: ONIX_TURBO_FLUIDS,
     trims: [
       // O vínculo só confirma com "TB"/"Turbo" na versão (lib/domain/engine-match.ts).
