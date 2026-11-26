@@ -8,7 +8,7 @@ import {
   planPosition,
   sceneFromSheet,
 } from "./bay-model";
-import { BAY_POSITION_SHEETS, getBayPositionSheet } from "./bay-positions";
+import { BAY_POSITION_SHEETS, getBayPositionSheet } from "./bay-sheets";
 import { fillPointAnchor } from "./engine-scene";
 import { TRACKED_FLUIDS } from "./fluids";
 

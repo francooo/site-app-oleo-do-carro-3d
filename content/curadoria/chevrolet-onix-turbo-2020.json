@@ -1,0 +1,168 @@
+{
+  "version": 1,
+  "layout": {
+    "code": "chevrolet-onix-turbo-2020",
+    "title": "Cofre do Chevrolet Onix / Onix Plus 1.0 Turbo",
+    "figurePage": 167,
+    "legendPage": 168
+  },
+  "source": {
+    "name": "Manual do Proprietário Chevrolet Onix/Onix Plus 2021 (52165543)",
+    "reference": "https://meu.chevrolet.com.br/content/dam/gmownercenter/gmsa/gmbr/dynamic/manuals/2021/chevrolet/Onix/pt/om_ng-chevrolet_Onix_my21-pt_BR.pdf",
+    "verifiedAt": "2026-11-25"
+  },
+  "secondSource": "Valvoline (via filtrobom.com.br) e revista O Mecânico: óleo 5W30 dexos1 Gen 2, 3,75 L com filtro; aditivo 35%. O manual MY20 do Onix Plus traz os mesmos valores.",
+  "engine": {
+    "code": "gm-1.0-turbo-flex",
+    "displacement": "1.0",
+    "fuelType": "flex",
+    "cylinders": 3,
+    "aspiration": "turbo",
+    "notes": "Chevrolet Onix/Onix Plus 1.0 Turbo Flex (116 cv). Dados do manual MY21; o 1.0 aspirado é outro motor (óleo 0W20)."
+  },
+  "trims": [
+    {
+      "make": "Chevrolet",
+      "model": "Onix Plus",
+      "yearFrom": 2020,
+      "yearTo": 2021,
+      "hint": "Só a versão 1.0 Turbo; o 1.0 aspirado ainda não foi curado."
+    },
+    {
+      "make": "Chevrolet",
+      "model": "Onix",
+      "yearFrom": 2021,
+      "yearTo": 2021,
+      "hint": "Só a versão 1.0 Turbo; o 1.0 aspirado ainda não foi curado."
+    }
+  ],
+  "points": [
+    {
+      "item": "washer",
+      "label": "Reservatório do lavador",
+      "x": 0.1,
+      "depth": 0.5,
+      "height": "mid",
+      "figureRef": 1
+    },
+    {
+      "item": "coolant",
+      "label": "Reservatório de expansão (arrefecimento)",
+      "x": 0.1,
+      "depth": 0.7,
+      "height": "high",
+      "figureRef": 2,
+      "tint": "#f08a3c"
+    },
+    {
+      "item": "oil_dipstick",
+      "label": "Vareta do óleo",
+      "x": 0.4,
+      "depth": 0.5,
+      "height": "mid",
+      "figureRef": 3
+    },
+    {
+      "item": "oil_cap",
+      "label": "Tampa de abastecimento do óleo",
+      "x": 0.45,
+      "depth": 0.6,
+      "height": "high",
+      "figureRef": 4
+    },
+    {
+      "item": "brake",
+      "label": "Reservatório do fluido de freio",
+      "x": 0.65,
+      "depth": 0.9,
+      "height": "high",
+      "figureRef": 5
+    },
+    {
+      "item": "air_filter",
+      "label": "Filtro de ar",
+      "x": 0.7,
+      "depth": 0.35,
+      "height": "mid",
+      "figureRef": 6
+    },
+    {
+      "item": "battery",
+      "label": "Bateria",
+      "x": 0.7,
+      "depth": 0.7,
+      "height": "mid",
+      "figureRef": 7
+    },
+    {
+      "item": "battery_remote_terminal",
+      "label": "Terminal positivo remoto (sob a tampa)",
+      "x": 0.8,
+      "depth": 0.65,
+      "height": "mid",
+      "figureRef": 8
+    },
+    {
+      "item": "fuse_box",
+      "label": "Caixa de fusíveis",
+      "x": 0.9,
+      "depth": 0.7,
+      "height": "mid",
+      "figureRef": 9
+    }
+  ],
+  "fluids": [
+    {
+      "fluidType": "oil",
+      "specification": "Totalmente sintético dexos1 Gen 2, SAE 5W30 (equivalente: API SN / ILSAC GF-5 ou superior)",
+      "viscosity": "5W30",
+      "volumeMl": null,
+      "volumeWithFilterMl": 3750,
+      "volumeWithAcMl": null,
+      "intervalKm": 10000,
+      "intervalMonths": 12,
+      "checkIntervalKm": null,
+      "warnings": "Troque antes se o painel avisar pelo sistema de vida útil do óleo. O 0W20 é do Onix 1.0 aspirado — no Turbo é 5W30.",
+      "pages": "p.170–172 (verificação, vida útil), p.214 (intervalo), p.217 (5W30 no Turbo), p.231 (3,75 L com filtro)"
+    },
+    {
+      "fluidType": "brake",
+      "specification": "DOT 4 LV (GMW3356; ISO 4925 Classe 6 / ABNT NBR 9292 Tipo 4LV)",
+      "viscosity": null,
+      "volumeMl": null,
+      "volumeWithFilterMl": null,
+      "volumeWithAcMl": null,
+      "intervalKm": null,
+      "intervalMonths": 24,
+      "checkIntervalKm": null,
+      "warnings": "O manual não recomenda completar por conta própria: nível baixo pede revisão. Capacidade do circuito: 0,56 L (câmbio automático) ou 0,60 L (manual).",
+      "pages": "p.179, p.215 (2 anos), p.217–218, p.231 (0,56 L automático / 0,60 L manual)"
+    },
+    {
+      "fluidType": "coolant",
+      "specification": "Água potável + aditivo ACDelco longa vida (laranja), 35% de aditivo",
+      "viscosity": null,
+      "volumeMl": 5400,
+      "volumeWithFilterMl": null,
+      "volumeWithAcMl": null,
+      "intervalKm": 150000,
+      "intervalMonths": 60,
+      "checkIntervalKm": null,
+      "warnings": "Em regiões muito frias (perto de -20 °C) o manual pede 50% de aditivo e 50% de água. Não misture outros tipos de aditivo.",
+      "pages": "p.175–176, p.212, p.215 (150.000 km / 5 anos), p.217–218, p.231 (5,4 L)"
+    },
+    {
+      "fluidType": "washer",
+      "specification": "Fluido próprio para lavador, conforme o rótulo do fabricante",
+      "viscosity": null,
+      "volumeMl": 3000,
+      "volumeWithFilterMl": null,
+      "volumeWithAcMl": null,
+      "intervalKm": null,
+      "intervalMonths": null,
+      "checkIntervalKm": null,
+      "warnings": "Não use líquido de arrefecimento nem produto repelente de água.",
+      "pages": "p.178, p.231 (3,0 L)"
+    }
+  ]
+}

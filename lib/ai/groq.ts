@@ -13,4 +13,4 @@ export const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 // Configurável por env porque modelos hospedados na Groq mudam com alguma
 // frequência — trocar o padrão aqui não deve exigir tocar no restante do
 // código (mesmo racional de abstração de provedor da seção 6 do PRD).
-export const CURATION_MODEL = process.env.GROQ_CURATION_MODEL ?? "llama-3.3-70b-versatile";
+export const CURATION_MODEL = process.env.GROQ_CURATION_MODEL ?? "openai/gpt-oss-120b";

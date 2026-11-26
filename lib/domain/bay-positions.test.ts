@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { BAY_POSITION_SHEETS, fluidCheckPoints, getBayPositionSheet } from "./bay-positions";
+import { fluidCheckPoints } from "./bay-positions";
+import { BAY_POSITION_SHEETS, getBayPositionSheet } from "./bay-sheets";
 import { TRACKED_FLUIDS } from "./fluids";
 
 describe("fichas de posições do cofre", () => {

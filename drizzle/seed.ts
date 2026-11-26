@@ -1,8 +1,9 @@
 import { and, eq } from "drizzle-orm";
 
 import { db } from "../lib/db/client";
+import { CURATIONS } from "../content/curadoria";
 import { planHotspots } from "../lib/domain/bay-model";
-import { getBayPositionSheet } from "../lib/domain/bay-positions";
+import { type CurationFile, sheetFromCuration, validateCuration } from "../lib/domain/curation";
 import {
   componentTypes,
   engineFluids,
@@ -156,11 +157,17 @@ const PILOT_FLUIDS: FluidDef[] = [
 ];
 
 type EngineDef = {
-  source: typeof PILOT_SOURCE;
+  source: {
+    name: string;
+    type: "manual";
+    reference: string | null;
+    verifiedAt: Date;
+    verifiedBy: string;
+  };
   engine: {
     code: string;
     displacement: string;
-    fuelType: "flex";
+    fuelType: "flex" | "gasoline" | "ethanol" | "diesel";
     cylinders?: number;
     aspiration?: "naturally_aspirated" | "turbo";
     notes: string;
@@ -268,96 +275,43 @@ async function seedEngine(def: EngineDef) {
 }
 
 // ---------------------------------------------------------------------------
-// Chevrolet Onix / Onix Plus 1.0 Turbo Flex (CSS Prime, 3 cilindros).
-// Fonte: "Manual do Proprietário Chevrolet Onix/Onix Plus 2021" (52165543,
-// MY21, cobre hatch e sedan e as duas motorizações). Páginas = numeração
-// impressa. O manual MY20 do Onix Plus traz os mesmos valores. Segunda fonte
-// (óleo 5W30 dexos1 Gen 2 e 3,75 L): Valvoline e revista O Mecânico.
-// Mapa do cofre: planta 2D e 3D gerados da ficha de posições (figura p.167).
+// Demais carros: arquivos de curadoria (content/curadoria/*.json), gerados
+// pela ferramenta /curadoria e revisados no diff. Arquivo inválido barra o seed.
 // ---------------------------------------------------------------------------
 
-const ONIX_SOURCE = {
-  name: "Manual do Proprietário Chevrolet Onix/Onix Plus 2021 (52165543)",
-  type: "manual" as const,
-  reference:
-    "https://meu.chevrolet.com.br/content/dam/gmownercenter/gmsa/gmbr/dynamic/manuals/2021/chevrolet/Onix/pt/om_ng-chevrolet_Onix_my21-pt_BR.pdf",
-  verifiedAt: new Date("2026-11-25T12:00:00Z"),
-  verifiedBy: "Curadoria Fluido Fácil",
-};
-
-const ONIX_TURBO_FLUIDS: FluidDef[] = [
-  {
-    // p.170–172 (verificação, vida útil), p.214 (intervalo), p.217 (5W30 no
-    // Turbo), p.231 (3,75 L com filtro).
-    fluidType: "oil",
-    specification:
-      "Totalmente sintético dexos1 Gen 2, SAE 5W30 (equivalente: API SN / ILSAC GF-5 ou superior)",
-    viscosity: "5W30",
-    volumeMl: null,
-    volumeWithFilterMl: 3750,
-    volumeWithAcMl: null,
-    intervalKm: 10000,
-    intervalMonths: 12,
-    checkIntervalKm: null,
-    warnings:
-      "Troque antes se o painel avisar pelo sistema de vida útil do óleo. O 0W20 é do Onix 1.0 aspirado — no Turbo é 5W30.",
-  },
-  {
-    // p.175–176, 212, 215 (150.000 km / 5 anos), 217–218, 231 (5,4 L).
-    fluidType: "coolant",
-    specification: "Água potável + aditivo ACDelco longa vida (laranja), 35% de aditivo",
-    viscosity: null,
-    volumeMl: 5400,
-    volumeWithFilterMl: null,
-    volumeWithAcMl: null,
-    intervalKm: 150000,
-    intervalMonths: 60,
-    checkIntervalKm: null,
-    warnings:
-      "Em regiões muito frias (perto de -20 °C) o manual pede 50% de aditivo e 50% de água. Não misture outros tipos de aditivo.",
-  },
-  {
-    // p.179, 215 (2 anos), 217–218, 231 (0,56 L automático / 0,60 L manual).
-    fluidType: "brake",
-    specification: "DOT 4 LV (GMW3356; ISO 4925 Classe 6 / ABNT NBR 9292 Tipo 4LV)",
-    viscosity: null,
-    volumeMl: null,
-    volumeWithFilterMl: null,
-    volumeWithAcMl: null,
-    intervalKm: null,
-    intervalMonths: 24,
-    checkIntervalKm: null,
-    warnings:
-      "O manual não recomenda completar por conta própria: nível baixo pede revisão. Capacidade do circuito: 0,56 L (câmbio automático) ou 0,60 L (manual).",
-  },
-  {
-    // p.178, p.231 (3,0 L).
-    fluidType: "washer",
-    specification: "Fluido próprio para lavador, conforme o rótulo do fabricante",
-    viscosity: null,
-    volumeMl: 3000,
-    volumeWithFilterMl: null,
-    volumeWithAcMl: null,
-    intervalKm: null,
-    intervalMonths: null,
-    checkIntervalKm: null,
-    warnings: "Não use líquido de arrefecimento nem produto repelente de água.",
-  },
-];
-
-// Sem foto curada: a planta 2D e o 3D saem da ficha de posições
-// (lib/domain/bay-positions.ts); os pontos clicáveis também.
-const ONIX_TURBO_SHEET = getBayPositionSheet("chevrolet-onix-turbo-2020")!;
-const ONIX_TURBO_LAYOUT = {
-  code: ONIX_TURBO_SHEET.layoutCode,
-  imageStoragePath: null,
-  description: `${ONIX_TURBO_SHEET.title} visto de frente, capô aberto (planta gerada da figura p.${ONIX_TURBO_SHEET.source.figurePage} do manual).`,
-};
-const ONIX_TURBO_HOTSPOTS = planHotspots(ONIX_TURBO_SHEET).map((h) => ({
-  ...h,
-  x: h.x.toFixed(2),
-  y: h.y.toFixed(2),
-}));
+function engineDefFromCuration(c: CurationFile): EngineDef {
+  const errors = validateCuration(c);
+  if (errors.length > 0) {
+    throw new Error(`Curadoria ${c.layout.code} inválida: ${errors.join(" | ")}`);
+  }
+  const sheet = sheetFromCuration(c);
+  return {
+    source: {
+      name: c.source.name,
+      type: "manual",
+      reference: c.source.reference,
+      verifiedAt: new Date(`${c.source.verifiedAt}T12:00:00Z`),
+      verifiedBy: "Curadoria Fluido Fácil",
+    },
+    engine: {
+      code: c.engine.code,
+      displacement: c.engine.displacement,
+      fuelType: c.engine.fuelType,
+      cylinders: c.engine.cylinders ?? undefined,
+      aspiration: c.engine.aspiration ?? undefined,
+      notes: c.engine.notes,
+    },
+    // Sem foto curada: a planta 2D e o 3D saem da ficha de posições.
+    layout: {
+      code: c.layout.code,
+      imageStoragePath: null,
+      description: `${c.layout.title} visto de frente, capô aberto (planta gerada da figura p.${c.layout.figurePage} do manual).`,
+    },
+    hotspots: planHotspots(sheet).map((h) => ({ ...h, x: h.x.toFixed(2), y: h.y.toFixed(2) })),
+    fluids: c.fluids.map(({ pages: _pages, ...f }) => f),
+    trims: c.trims,
+  };
+}
 
 const ENGINES: EngineDef[] = [
   {
@@ -376,38 +330,7 @@ const ENGINES: EngineDef[] = [
       },
     ],
   },
-  {
-    source: ONIX_SOURCE,
-    engine: {
-      code: "gm-1.0-turbo-flex",
-      displacement: "1.0",
-      fuelType: "flex",
-      cylinders: 3,
-      aspiration: "turbo",
-      notes:
-        "Chevrolet Onix/Onix Plus 1.0 Turbo Flex (116 cv). Dados do manual MY21; o 1.0 aspirado é outro motor (óleo 0W20).",
-    },
-    layout: ONIX_TURBO_LAYOUT,
-    hotspots: ONIX_TURBO_HOTSPOTS,
-    fluids: ONIX_TURBO_FLUIDS,
-    trims: [
-      // O vínculo só confirma com "TB"/"Turbo" na versão (lib/domain/engine-match.ts).
-      {
-        make: "Chevrolet",
-        model: "Onix Plus",
-        yearFrom: 2020,
-        yearTo: 2021,
-        hint: "Só a versão 1.0 Turbo; o 1.0 aspirado ainda não foi curado.",
-      },
-      {
-        make: "Chevrolet",
-        model: "Onix",
-        yearFrom: 2021,
-        yearTo: 2021,
-        hint: "Só a versão 1.0 Turbo; o 1.0 aspirado ainda não foi curado.",
-      },
-    ],
-  },
+  ...CURATIONS.map(engineDefFromCuration),
 ];
 
 async function main() {

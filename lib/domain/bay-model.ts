@@ -10,8 +10,8 @@ import {
   type BayItem,
   type BayPoint,
   type BayPositionSheet,
-  getBayPositionSheet,
 } from "./bay-positions";
+import { getBayPositionSheet } from "./bay-sheets";
 import type { EngineScene, FillPoint, ScenePart, SceneHose, Vec3 } from "./engine-scene";
 import { getEngineScene } from "./engine-scene";
 
