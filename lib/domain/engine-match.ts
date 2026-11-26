@@ -14,8 +14,13 @@ export type TrimCandidate = {
   engineId: string;
   /** Cilindrada do motor, ex.: "1.0" (numeric do Postgres vem como string). */
   displacement: string | null;
+  /** Aspiração do motor curado (null = a fonte não distingue). */
+  aspiration?: Aspiration | null;
   isPrimary: boolean;
 };
+
+/** Mesmo enum `aspiration` do banco. */
+export type Aspiration = "naturally_aspirated" | "turbo" | "supercharged" | "hybrid";
 
 export type MatchInput = {
   make: string;
@@ -23,7 +28,33 @@ export type MatchInput = {
   year: number;
   engineDisplacement: string | null;
   fuel: FuelType | null;
+  /** Nome da versão (FIPE ou digitado): é onde aparece "TB", "Turbo", "TSI"… */
+  version?: string | null;
 };
+
+// Marcas de turbo nos nomes de versão FIPE/comerciais: "1.0 12V TB Flex",
+// "1.0 Turbo", "200 TSI", "1.0 TGDI", "T200", "T270".
+const TURBO_MARKER = /\b(tb|turbo|tsi|tgdi|t-?gdi|t200|t270|tfsi|ecoboost)\b/;
+
+/**
+ * "turbo" quando o nome da versão diz que é turbo; null quando não diz.
+ * A ausência da marca NÃO prova que é aspirado (versão digitada "LTZ").
+ */
+export function aspirationFromVersion(version: string | null | undefined): "turbo" | null {
+  if (!version) return null;
+  return TURBO_MARKER.test(normalize(version)) ? "turbo" : null;
+}
+
+/**
+ * Mesma cilindrada pode ser turbo ou aspirada (Onix 1.0 e 1.0 Turbo). Motor
+ * turbo só vincula com a marca de turbo na versão; motor aspirado nunca
+ * vincula com ela. Motor sem aspiração curada (piloto Uno) não filtra.
+ */
+function aspirationMatches(engine: Aspiration | null | undefined, vehicle: "turbo" | null) {
+  if (engine === "turbo") return vehicle === "turbo";
+  if (engine === "naturally_aspirated") return vehicle !== "turbo";
+  return true;
+}
 
 export type MatchResult =
   { status: "confirmed"; engineId: string } | { status: "unmatched"; engineId: null };
@@ -48,6 +79,7 @@ export function matchEngine(
   const make = normalize(vehicle.make);
   // "Uno Way", "Uno Vivace" → começa com o modelo curado.
   const model = normalize(vehicle.model);
+  const aspiration = aspirationFromVersion(vehicle.version);
 
   const matches = candidates.filter(
     (c) =>
@@ -57,7 +89,8 @@ export function matchEngine(
       vehicle.year <= c.yearTo &&
       (c.fuelType === null || c.fuelType === vehicle.fuel) &&
       c.displacement !== null &&
-      sameDisplacement(c.displacement, vehicle.engineDisplacement!),
+      sameDisplacement(c.displacement, vehicle.engineDisplacement!) &&
+      aspirationMatches(c.aspiration, aspiration),
   );
 
   const engineIds = [...new Set(matches.map((m) => m.engineId))];

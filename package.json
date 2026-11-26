@@ -14,6 +14,7 @@
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx --env-file=.env.local drizzle/seed.ts",
+    "db:relink": "tsx --env-file=.env.local scripts/relink-vehicles.ts",
     "curate": "tsx --env-file=.env.local scripts/curation-assistant.ts"
   },
   "dependencies": {

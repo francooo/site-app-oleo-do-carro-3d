@@ -242,6 +242,71 @@ const ENGINE_OVERRIDES: Record<string, Partial<Record<TrackedFluidCode, Override
   },
 };
 
+// Chevrolet Onix/Onix Plus 1.0 Turbo Flex. Fonte: Manual do Proprietário
+// Onix/Onix Plus MY21 (52165543). Páginas = numeração impressa.
+const GM_10_TURBO: Partial<Record<TrackedFluidCode, Override>> = {
+  oil: {
+    // p.170–171.
+    howToCheck: "Terreno plano, de preferência com o motor frio",
+    steps: {
+      1: {
+        title: "Espere o óleo descer: o ideal é o motor frio",
+        detail:
+          "O manual do Onix diz que a leitura é mais precisa com o motor frio, antes de dar a partida (desligado há pelo menos 2 horas). Sem tempo? Espere ao menos 15 minutos com o motor frio ou 30 minutos com ele quente.",
+        alert: { icon: "hot", text: "Melhor com o motor frio" },
+      },
+      3: {
+        title: "Confira o óleo na área hachurada da vareta",
+        detail:
+          "Se estiver abaixo da área hachurada, complete 1 litro pela tampa de abastecimento com óleo totalmente sintético dexos1 Gen 2, SAE 5W30, e meça de novo. Não passe da marca superior.",
+      },
+    },
+    changeInfo:
+      "Óleo e filtro a cada 10.000 km ou 1 ano, o que vier primeiro — ou antes, se o painel avisar pelo sistema de vida útil do óleo. Em uso severo, os intervalos devem ser reduzidos.",
+    extraSafety: [
+      "No Onix 1.0 Turbo o óleo é 5W30. O 0W20 é do Onix 1.0 aspirado: não use no turbo.",
+    ],
+  },
+  coolant: {
+    // p.175–176, 212, 215, 217–218.
+    steps: {
+      2: {
+        title: "Confira o nível na marca de enchimento, sem abrir",
+        detail:
+          "Com o motor frio, o líquido deve estar na marca de enchimento do reservatório de expansão (indicada por duas setas).",
+      },
+      3: {
+        detail:
+          "Com o motor frio, complete com água potável e aditivo ACDelco longa vida (laranja), na proporção de 35% de aditivo. Não misture outros tipos ou cores.",
+      },
+    },
+    changeInfo:
+      "Troca a cada 150.000 km ou 5 anos, feita por um profissional, com água potável e aditivo ACDelco longa vida (laranja).",
+  },
+  brake: {
+    // p.179, 215, 217–218.
+    steps: {
+      3: {
+        detail:
+          "O manual do Onix não recomenda completar o fluido de freio por conta própria: nível baixo pode indicar desgaste das pastilhas ou vazamento. Leve a uma concessionária ou oficina.",
+      },
+    },
+    changeInfo:
+      "Troca a cada 2 anos, mesmo rodando pouco, com fluido DOT 4 LV (GMW3356). Feita por um profissional.",
+  },
+  washer: {
+    // p.178.
+    steps: {
+      2: {
+        detail:
+          "Use fluido próprio para lavador, seguindo o rótulo. Não use líquido de arrefecimento nem produto repelente de água, e não acrescente água a um fluido pronto para uso.",
+      },
+    },
+  },
+};
+
+ENGINE_OVERRIDES["gm-1.0-turbo-flex"] = GM_10_TURBO;
+
 export function getFluidContent(code: TrackedFluidCode, engineCode?: string | null): FluidContent {
   const base = GENERAL[code];
   const o = engineCode ? ENGINE_OVERRIDES[engineCode]?.[code] : undefined;

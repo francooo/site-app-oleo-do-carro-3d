@@ -59,6 +59,7 @@ export async function getTrimCandidates(make: string, year: number) {
       fuelType: trimEngineMap.fuelType,
       engineId: trimEngineCandidates.engineId,
       displacement: engines.displacement,
+      aspiration: engines.aspiration,
       isPrimary: trimEngineCandidates.isPrimary,
     })
     .from(trimEngineMap)

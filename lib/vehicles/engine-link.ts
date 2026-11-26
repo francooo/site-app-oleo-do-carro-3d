@@ -8,6 +8,7 @@ type LinkableVehicle = {
   make: string;
   model: string;
   year: number;
+  version: string | null;
   engineDisplacement: string | null;
   fuel: FuelType | null;
   engineId: string | null;

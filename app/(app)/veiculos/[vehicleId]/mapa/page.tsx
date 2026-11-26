@@ -23,6 +23,7 @@ export default async function MapaPage({ params }: { params: Promise<{ vehicleId
   const { vehicleId } = await params;
   const { vehicle, sheet, fluids } = await loadVehicleFluids(vehicleId);
   const layout = sheet?.layout;
+  const sourceName = sheet?.fluids[0]?.source?.name ?? null;
   const hotspots =
     layout?.hotspots
       .filter((h) => h.fluidType)
@@ -38,13 +39,14 @@ export default async function MapaPage({ params }: { params: Promise<{ vehicleId
       />
       <VehicleContextBar vehicle={vehicle} />
 
-      {sheet ? (
-        <p className="text-warning mb-5 flex items-start gap-2 text-sm">
-          <Info className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={2.2} aria-hidden="true" />
-          <span>
-            Versão piloto: dados do manual do Fiat Uno 1.0 (edição 2013). Se o seu carro for de
-            outra versão, confira no manual dele.
-          </span>
+      {sourceName ? (
+        <p className="text-foreground-muted mb-5 flex items-start gap-2 text-sm">
+          <Info
+            className="text-accent mt-0.5 h-4 w-4 shrink-0"
+            strokeWidth={2.2}
+            aria-hidden="true"
+          />
+          <span>Dados do {sourceName}. Na dúvida, confira no manual do seu carro.</span>
         </p>
       ) : null}
 
@@ -78,13 +80,27 @@ export default async function MapaPage({ params }: { params: Promise<{ vehicleId
             aria-hidden="true"
           />
           <div className="text-sm">
-            <p className="font-heading text-foreground-strong text-base font-bold">
-              Ainda não temos o mapa do cofre deste carro
-            </p>
-            <p className="text-foreground-muted mt-1">
-              O mapa interativo existe por enquanto só para o Fiat Uno 2016 1.0 Flex. Os guias
-              abaixo valem para qualquer carro — confira sempre o manual do seu.
-            </p>
+            {sheet ? (
+              <>
+                <p className="font-heading text-foreground-strong text-base font-bold">
+                  O mapa do cofre deste carro está sendo montado
+                </p>
+                <p className="text-foreground-muted mt-1">
+                  A ficha já está pronta: abra cada fluido abaixo para ver qual usar, quanto cabe,
+                  quando trocar e como verificar no seu {vehicle.model}.
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="font-heading text-foreground-strong text-base font-bold">
+                  Ainda não temos os dados deste carro
+                </p>
+                <p className="text-foreground-muted mt-1">
+                  Seu {vehicle.make} {vehicle.model} entrou na nossa fila de curadoria. Enquanto
+                  isso, os guias abaixo valem para qualquer carro — confira sempre o manual do seu.
+                </p>
+              </>
+            )}
           </div>
         </div>
       )}

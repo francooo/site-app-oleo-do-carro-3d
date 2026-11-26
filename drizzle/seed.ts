@@ -93,7 +93,9 @@ const PILOT_HOTSPOTS = [
   { fluidType: "oil", x: "69.60", y: "61.80", description: "Vareta e bocal do óleo" },
 ];
 
-const PILOT_FLUIDS = [
+type FluidDef = Omit<typeof engineFluids.$inferInsert, "engineId" | "sourceId">;
+
+const PILOT_FLUIDS: FluidDef[] = [
   {
     // E-16 (abastecimentos), E-18 (características), D-3/D-5 (troca), D-9.
     fluidType: "oil",
@@ -151,79 +153,240 @@ const PILOT_FLUIDS = [
   },
 ];
 
-async function seedPilot() {
-  let [source] = await db
-    .select()
-    .from(sources)
-    .where(eq(sources.name, PILOT_SOURCE.name));
+type EngineDef = {
+  source: typeof PILOT_SOURCE;
+  engine: {
+    code: string;
+    displacement: string;
+    fuelType: "flex";
+    cylinders?: number;
+    aspiration?: "naturally_aspirated" | "turbo";
+    notes: string;
+  };
+  /** Sem layout = só a ficha dos fluidos (nível 1), ainda sem mapa do cofre. */
+  layout: typeof PILOT_LAYOUT | null;
+  hotspots: typeof PILOT_HOTSPOTS;
+  fluids: FluidDef[];
+  trims: { make: string; model: string; yearFrom: number; yearTo: number; hint: string }[];
+};
+
+async function seedEngine(def: EngineDef) {
+  let [source] = await db.select().from(sources).where(eq(sources.name, def.source.name));
   if (!source) {
-    [source] = await db.insert(sources).values(PILOT_SOURCE).returning();
+    [source] = await db.insert(sources).values(def.source).returning();
   }
 
-  await db.insert(engineLayouts).values(PILOT_LAYOUT).onConflictDoNothing();
-  const [layout] = await db
-    .select()
-    .from(engineLayouts)
-    .where(eq(engineLayouts.code, PILOT_LAYOUT.code));
+  let layoutId: string | null = null;
+  if (def.layout) {
+    await db.insert(engineLayouts).values(def.layout).onConflictDoNothing();
+    const [layout] = await db
+      .select()
+      .from(engineLayouts)
+      .where(eq(engineLayouts.code, def.layout.code));
+    layoutId = layout.id;
+    // Filhos sem chave natural: substitui o conjunto inteiro.
+    await db.delete(engineLayoutHotspots).where(eq(engineLayoutHotspots.layoutId, layout.id));
+    if (def.hotspots.length > 0) {
+      await db
+        .insert(engineLayoutHotspots)
+        .values(def.hotspots.map((h) => ({ ...h, layoutId: layout.id })));
+    }
+  }
 
+  const engineValues = {
+    ...def.engine,
+    cylinders: def.engine.cylinders ?? null,
+    aspiration: def.engine.aspiration ?? null,
+    layoutId,
+  };
   await db
     .insert(engines)
-    .values({ ...PILOT_ENGINE, layoutId: layout.id })
+    .values(engineValues)
     .onConflictDoUpdate({
       target: engines.code,
-      set: { layoutId: layout.id, notes: PILOT_ENGINE.notes },
+      set: {
+        layoutId,
+        notes: engineValues.notes,
+        cylinders: engineValues.cylinders,
+        aspiration: engineValues.aspiration,
+      },
     });
-  const [engine] = await db
-    .select()
-    .from(engines)
-    .where(eq(engines.code, PILOT_ENGINE.code));
-
-  // Filhos sem chave natural: substitui o conjunto inteiro.
-  await db
-    .delete(engineLayoutHotspots)
-    .where(eq(engineLayoutHotspots.layoutId, layout.id));
-  await db
-    .insert(engineLayoutHotspots)
-    .values(PILOT_HOTSPOTS.map((h) => ({ ...h, layoutId: layout.id })));
+  const [engine] = await db.select().from(engines).where(eq(engines.code, def.engine.code));
 
   await db.delete(engineFluids).where(eq(engineFluids.engineId, engine.id));
   await db
     .insert(engineFluids)
-    .values(
-      PILOT_FLUIDS.map((f) => ({ ...f, engineId: engine.id, sourceId: source.id })),
-    );
+    .values(def.fluids.map((f) => ({ ...f, engineId: engine.id, sourceId: source.id })));
 
-  let [trim] = await db
-    .select()
-    .from(trimEngineMap)
-    .where(
-      and(
-        eq(trimEngineMap.make, "Fiat"),
-        eq(trimEngineMap.model, "Uno"),
-        eq(trimEngineMap.yearFrom, 2016),
-        eq(trimEngineMap.yearTo, 2016),
-      ),
-    );
-  if (!trim) {
-    [trim] = await db
-      .insert(trimEngineMap)
-      .values({
+  for (const t of def.trims) {
+    let [trim] = await db
+      .select()
+      .from(trimEngineMap)
+      .where(
+        and(
+          eq(trimEngineMap.make, t.make),
+          eq(trimEngineMap.model, t.model),
+          eq(trimEngineMap.yearFrom, t.yearFrom),
+          eq(trimEngineMap.yearTo, t.yearTo),
+        ),
+      );
+    if (!trim) {
+      [trim] = await db
+        .insert(trimEngineMap)
+        .values({
+          make: t.make,
+          model: t.model,
+          yearFrom: t.yearFrom,
+          yearTo: t.yearTo,
+          fuelType: def.engine.fuelType,
+          disambiguationHint: t.hint,
+        })
+        .returning();
+    }
+    // Mesmo ano/modelo pode ter vários motores (Onix 1.0 e 1.0 Turbo): só
+    // substitui o vínculo deste motor, sem apagar os outros candidatos.
+    await db
+      .delete(trimEngineCandidates)
+      .where(
+        and(
+          eq(trimEngineCandidates.trimEngineMapId, trim.id),
+          eq(trimEngineCandidates.engineId, engine.id),
+        ),
+      );
+    await db
+      .insert(trimEngineCandidates)
+      .values({ trimEngineMapId: trim.id, engineId: engine.id, isPrimary: false });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Chevrolet Onix / Onix Plus 1.0 Turbo Flex (CSS Prime, 3 cilindros).
+// Fonte: "Manual do Proprietário Chevrolet Onix/Onix Plus 2021" (52165543,
+// MY21, cobre hatch e sedan e as duas motorizações). Páginas = numeração
+// impressa. O manual MY20 do Onix Plus traz os mesmos valores. Segunda fonte
+// (óleo 5W30 dexos1 Gen 2 e 3,75 L): Valvoline e revista O Mecânico.
+// Ainda sem mapa do cofre (nível 1: só a ficha dos fluidos).
+// ---------------------------------------------------------------------------
+
+const ONIX_SOURCE = {
+  name: "Manual do Proprietário Chevrolet Onix/Onix Plus 2021 (52165543)",
+  type: "manual" as const,
+  reference:
+    "https://meu.chevrolet.com.br/content/dam/gmownercenter/gmsa/gmbr/dynamic/manuals/2021/chevrolet/Onix/pt/om_ng-chevrolet_Onix_my21-pt_BR.pdf",
+  verifiedAt: new Date("2026-11-25T12:00:00Z"),
+  verifiedBy: "Curadoria Fluido Fácil",
+};
+
+const ONIX_TURBO_FLUIDS: FluidDef[] = [
+  {
+    // p.170–172 (verificação, vida útil), p.214 (intervalo), p.217 (5W30 no
+    // Turbo), p.231 (3,75 L com filtro).
+    fluidType: "oil",
+    specification:
+      "Totalmente sintético dexos1 Gen 2, SAE 5W30 (equivalente: API SN / ILSAC GF-5 ou superior)",
+    viscosity: "5W30",
+    volumeMl: null,
+    volumeWithFilterMl: 3750,
+    volumeWithAcMl: null,
+    intervalKm: 10000,
+    intervalMonths: 12,
+    checkIntervalKm: null,
+    warnings:
+      "Troque antes se o painel avisar pelo sistema de vida útil do óleo. O 0W20 é do Onix 1.0 aspirado — no Turbo é 5W30.",
+  },
+  {
+    // p.175–176, 212, 215 (150.000 km / 5 anos), 217–218, 231 (5,4 L).
+    fluidType: "coolant",
+    specification: "Água potável + aditivo ACDelco longa vida (laranja), 35% de aditivo",
+    viscosity: null,
+    volumeMl: 5400,
+    volumeWithFilterMl: null,
+    volumeWithAcMl: null,
+    intervalKm: 150000,
+    intervalMonths: 60,
+    checkIntervalKm: null,
+    warnings:
+      "Em regiões muito frias (perto de -20 °C) o manual pede 50% de aditivo e 50% de água. Não misture outros tipos de aditivo.",
+  },
+  {
+    // p.179, 215 (2 anos), 217–218, 231 (0,56 L automático / 0,60 L manual).
+    fluidType: "brake",
+    specification: "DOT 4 LV (GMW3356; ISO 4925 Classe 6 / ABNT NBR 9292 Tipo 4LV)",
+    viscosity: null,
+    volumeMl: null,
+    volumeWithFilterMl: null,
+    volumeWithAcMl: null,
+    intervalKm: null,
+    intervalMonths: 24,
+    checkIntervalKm: null,
+    warnings:
+      "O manual não recomenda completar por conta própria: nível baixo pede revisão. Capacidade do circuito: 0,56 L (câmbio automático) ou 0,60 L (manual).",
+  },
+  {
+    // p.178, p.231 (3,0 L).
+    fluidType: "washer",
+    specification: "Fluido próprio para lavador, conforme o rótulo do fabricante",
+    viscosity: null,
+    volumeMl: 3000,
+    volumeWithFilterMl: null,
+    volumeWithAcMl: null,
+    intervalKm: null,
+    intervalMonths: null,
+    checkIntervalKm: null,
+    warnings: "Não use líquido de arrefecimento nem produto repelente de água.",
+  },
+];
+
+const ENGINES: EngineDef[] = [
+  {
+    source: PILOT_SOURCE,
+    engine: PILOT_ENGINE,
+    layout: PILOT_LAYOUT,
+    hotspots: PILOT_HOTSPOTS,
+    fluids: PILOT_FLUIDS,
+    trims: [
+      {
         make: "Fiat",
         model: "Uno",
         yearFrom: 2016,
         yearTo: 2016,
-        fuelType: "flex",
-        disambiguationHint: "Piloto: só 2016 1.0 Flex, conforme a fonte curada.",
-      })
-      .returning();
-  }
-  await db
-    .delete(trimEngineCandidates)
-    .where(eq(trimEngineCandidates.trimEngineMapId, trim.id));
-  await db
-    .insert(trimEngineCandidates)
-    .values({ trimEngineMapId: trim.id, engineId: engine.id, isPrimary: true });
-}
+        hint: "Piloto: só 2016 1.0 Flex, conforme a fonte curada.",
+      },
+    ],
+  },
+  {
+    source: ONIX_SOURCE,
+    engine: {
+      code: "gm-1.0-turbo-flex",
+      displacement: "1.0",
+      fuelType: "flex",
+      cylinders: 3,
+      aspiration: "turbo",
+      notes:
+        "Chevrolet Onix/Onix Plus 1.0 Turbo Flex (116 cv). Dados do manual MY21; o 1.0 aspirado é outro motor (óleo 0W20).",
+    },
+    layout: null,
+    hotspots: [],
+    fluids: ONIX_TURBO_FLUIDS,
+    trims: [
+      // O vínculo só confirma com "TB"/"Turbo" na versão (lib/domain/engine-match.ts).
+      {
+        make: "Chevrolet",
+        model: "Onix Plus",
+        yearFrom: 2020,
+        yearTo: 2021,
+        hint: "Só a versão 1.0 Turbo; o 1.0 aspirado ainda não foi curado.",
+      },
+      {
+        make: "Chevrolet",
+        model: "Onix",
+        yearFrom: 2021,
+        yearTo: 2021,
+        hint: "Só a versão 1.0 Turbo; o 1.0 aspirado ainda não foi curado.",
+      },
+    ],
+  },
+];
 
 async function main() {
   for (const ft of FLUID_TYPES) {
@@ -236,9 +399,9 @@ async function main() {
       });
   }
   await db.insert(componentTypes).values(COMPONENT_TYPES).onConflictDoNothing();
-  await seedPilot();
+  for (const def of ENGINES) await seedEngine(def);
   console.log(
-    `Seed ok: ${FLUID_TYPES.length} fluid_types, ${COMPONENT_TYPES.length} component_types, piloto Fiat Uno 2016 (${PILOT_FLUIDS.length} fluidos, ${PILOT_HOTSPOTS.length} pontos)`,
+    `Seed ok: ${FLUID_TYPES.length} fluid_types, ${COMPONENT_TYPES.length} component_types, ${ENGINES.length} motores (${ENGINES.map((e) => e.engine.code).join(", ")})`,
   );
 }
 

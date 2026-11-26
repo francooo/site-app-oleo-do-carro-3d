@@ -168,6 +168,62 @@ describe("matchEngine", () => {
     expect(matchEngine({ ...uno, model: "Unonovo" }, CANDIDATES).status).toBe("unmatched");
   });
 
+  describe("turbo × aspirado (Onix 1.0 e 1.0 Turbo)", () => {
+    const ONIX: TrimCandidate[] = [
+      {
+        make: "Chevrolet",
+        model: "Onix Plus",
+        yearFrom: 2020,
+        yearTo: 2021,
+        fuelType: "flex",
+        engineId: "engine-onix-turbo",
+        displacement: "1.0",
+        aspiration: "turbo",
+        isPrimary: false,
+      },
+    ];
+    const onix = {
+      make: "Chevrolet",
+      model: "Onix Plus",
+      year: 2021,
+      engineDisplacement: "1.0",
+      fuel: "flex" as const,
+    };
+
+    it("vincula o turbo quando a versão FIPE diz TB/Turbo", () => {
+      for (const version of ["ONIX SEDAN Plus 1.0 12V TB Flex Aut.", "Premier 1.0 Turbo"]) {
+        expect(matchEngine({ ...onix, version }, ONIX)).toEqual({
+          status: "confirmed",
+          engineId: "engine-onix-turbo",
+        });
+      }
+    });
+
+    it("não vincula o turbo a um Onix aspirado nem sem versão", () => {
+      expect(
+        matchEngine({ ...onix, version: "ONIX SEDAN Plus 1.0 12V Flex Mec." }, ONIX).status,
+      ).toBe("unmatched");
+      expect(matchEngine({ ...onix, version: "LTZ" }, ONIX).status).toBe("unmatched");
+      expect(matchEngine({ ...onix, version: null }, ONIX).status).toBe("unmatched");
+    });
+
+    it("motor aspirado curado não vincula versão turbo", () => {
+      const aspirado = ONIX.map((c) => ({
+        ...c,
+        engineId: "engine-onix-aspirado",
+        aspiration: "naturally_aspirated" as const,
+      }));
+      expect(matchEngine({ ...onix, version: "1.0 12V TB Flex" }, aspirado).status).toBe(
+        "unmatched",
+      );
+      expect(matchEngine({ ...onix, version: "1.0 12V Flex" }, aspirado).status).toBe("confirmed");
+    });
+
+    it("não confunde letras de palavras com a marca de turbo", () => {
+      expect(matchEngine({ ...onix, version: "Activ 1.0 Tbox" }, ONIX).status).toBe("unmatched");
+    });
+  });
+
   it("não vincula sem motorização ou combustível informados", () => {
     expect(matchEngine({ ...uno, engineDisplacement: null }, CANDIDATES).status).toBe("unmatched");
     expect(matchEngine({ ...uno, fuel: null }, CANDIDATES).status).toBe("unmatched");

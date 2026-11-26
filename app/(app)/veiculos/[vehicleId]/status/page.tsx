@@ -101,7 +101,7 @@ export default async function StatusPage({ params, searchParams }: Props) {
 
       <p className="text-foreground-muted mt-4 text-xs">
         Sugestão do app: conferir os níveis a cada {DEFAULT_CHECK_INTERVAL_DAYS} dias, além do que o
-        manual pede (no Uno: a cada 500 km ou antes de viagens longas).
+        manual do seu carro pede.
       </p>
 
       {atualizar ? (

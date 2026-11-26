@@ -186,8 +186,8 @@ export default async function FluidoPage({ params }: Params) {
                   f.source.name
                 )}
                 {f.source.verifiedAt ? ` · revisado em ${formatDate(f.source.verifiedAt)}` : ""}.
-                Valores para o Fiat Uno 1.0 Flex; confirme no manual se o seu carro for de outra
-                versão.
+                Valores do manual para este motor; confirme no manual do seu carro se a versão for
+                outra.
               </p>
             ) : (
               <p>
