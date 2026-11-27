@@ -11,7 +11,6 @@ import {
   type BayPoint,
   type BayPositionSheet,
 } from "./bay-positions";
-import { getBayPositionSheet } from "./bay-sheets";
 import type { EngineScene, FillPoint, ScenePart, SceneHose, Vec3 } from "./engine-scene";
 import { getEngineScene } from "./engine-scene";
 
@@ -315,9 +314,14 @@ export function sceneFromSheet(sheet: BayPositionSheet): EngineScene {
   };
 }
 
-/** Visual do layout: cena feita à mão (se houver) ou gerada da ficha + planta 2D. */
-export function getLayoutVisuals(layoutCode: string | null | undefined) {
-  const sheet = getBayPositionSheet(layoutCode);
+/**
+ * Visual do layout: cena feita à mão (se houver) ou gerada da ficha de
+ * posições publicada (curadoria) — e a ficha, para a planta 2D.
+ */
+export function getLayoutVisuals(
+  layoutCode: string | null | undefined,
+  sheet: BayPositionSheet | null,
+) {
   const scene = getEngineScene(layoutCode) ?? (sheet ? sceneFromSheet(sheet) : null);
   return { sheet, scene };
 }

@@ -1,5 +1,6 @@
-// GERADO pela ferramenta /curadoria (lib/curation/files.ts) — não edite à mão.
-// Um import por arquivo de curadoria desta pasta.
+// Arquivos de curadoria versionados no repositório: bootstrap do seed (entram
+// no banco como publicados se o layout ainda não existir) e fixtures dos
+// testes. Carros novos são cadastrados na curadoria online (/curadoria).
 
 import type { CurationFile } from "@/lib/domain/curation";
 

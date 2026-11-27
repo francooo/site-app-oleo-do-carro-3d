@@ -76,14 +76,14 @@ describe("cena 3D gerada", () => {
 
 describe("getLayoutVisuals", () => {
   it("Uno mantém a cena feita à mão; Onix usa a gerada", () => {
-    expect(getLayoutVisuals("fiat-uno-2016").scene?.layoutCode).toBe("fiat-uno-2016");
-    expect(getLayoutVisuals("fiat-uno-2016").sheet).toBeNull();
-    const onix = getLayoutVisuals("chevrolet-onix-turbo-2020");
+    expect(getLayoutVisuals("fiat-uno-2016", null).scene?.layoutCode).toBe("fiat-uno-2016");
+    expect(getLayoutVisuals("fiat-uno-2016", null).sheet).toBeNull();
+    const onix = getLayoutVisuals("chevrolet-onix-turbo-2020", ONIX);
     expect(onix.sheet).not.toBeNull();
     expect(onix.scene?.fillPoints).toHaveLength(4);
   });
 
   it("layout desconhecido não tem visual", () => {
-    expect(getLayoutVisuals("nao-existe")).toEqual({ sheet: null, scene: null });
+    expect(getLayoutVisuals("nao-existe", null)).toEqual({ sheet: null, scene: null });
   });
 });

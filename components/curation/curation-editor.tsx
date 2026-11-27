@@ -9,7 +9,8 @@ import { FluidIcon } from "@/components/icons/fluids";
 import { buttonClasses } from "@/components/ui/button-styles";
 import { Hotspot } from "@/components/ui/hotspot";
 import type { CurationDraft } from "@/lib/ai/curation-assistant";
-import { draftFluids, saveCuration } from "@/lib/curation/actions";
+import { draftFluids, publish, saveDraft } from "@/lib/curation/actions";
+import type { CurationRow } from "@/lib/db/queries/curations";
 import { planEngine, planHotspots, planParts, sceneFromSheet } from "@/lib/domain/bay-model";
 import { BAY_ITEM_FLUID, type BayItem, type BayPoint } from "@/lib/domain/bay-positions";
 import {
@@ -31,8 +32,17 @@ const FLUID_LABEL = Object.fromEntries(TRACKED_FLUIDS.map((f) => [f.code, f.labe
 
 // Editor da curadoria: dados do carro → cliques na figura do manual →
 // fluidos (com rascunho por IA) → prévia ao vivo → salvar o arquivo.
-export function CurationEditor({ existing }: { existing: CurationFile[] }) {
-  const [c, setC] = useState<CurationFile>(() => structuredClone(existing[0] ?? emptyCuration()));
+export function CurationEditor({
+  existing,
+  curatorEmail,
+}: {
+  existing: CurationRow[];
+  curatorEmail: string;
+}) {
+  const [c, setC] = useState<CurationFile>(() =>
+    structuredClone(existing[0]?.data ?? emptyCuration()),
+  );
+  const [confirming, setConfirming] = useState(false);
   const [figure, setFigure] = useState<string | null>(null);
   const [item, setItem] = useState<BayItem>("washer");
   const [height, setHeight] = useState<BayPoint["height"]>("mid");
@@ -88,16 +98,36 @@ export function CurationEditor({ existing }: { existing: CurationFile[] }) {
 
   return (
     <div className="mt-6 flex flex-col gap-8">
-      <Section title="Arquivo">
+      <Section title="Carros cadastrados">
+        <p className="text-foreground-muted text-xs">Você está como {curatorEmail}.</p>
         <div className="flex flex-wrap items-center gap-2">
-          {existing.map((f) => (
+          {existing.map((r) => (
             <button
-              key={f.layout.code}
+              key={r.layoutCode}
               type="button"
-              onClick={() => setC(structuredClone(f))}
-              className={`${buttonClasses("secondary")} min-h-10 px-4 text-sm`}
+              aria-pressed={c.layout.code === r.layoutCode}
+              onClick={() => {
+                setC(structuredClone(r.data));
+                setDraft(null);
+                setMessage(null);
+                setConfirming(false);
+              }}
+              className={`${buttonClasses("secondary")} min-h-10 gap-2 px-4 text-sm`}
             >
-              Editar {f.layout.code}
+              {r.data.layout.title || r.layoutCode}
+              <span
+                className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${
+                  r.status === "published" && !r.hasUnpublishedChanges
+                    ? "bg-[#1f3b2c] text-[#4cc38a]"
+                    : "bg-accent/15 text-accent"
+                }`}
+              >
+                {r.status === "draft"
+                  ? "Rascunho"
+                  : r.hasUnpublishedChanges
+                    ? "Publicado · alterações não publicadas"
+                    : "Publicado"}
+              </span>
             </button>
           ))}
           <button
@@ -105,6 +135,8 @@ export function CurationEditor({ existing }: { existing: CurationFile[] }) {
             onClick={() => {
               setC(emptyCuration());
               setDraft(null);
+              setMessage(null);
+              setConfirming(false);
             }}
             className={`${buttonClasses("primary")} min-h-10 px-4 text-sm`}
           >
@@ -548,7 +580,7 @@ export function CurationEditor({ existing }: { existing: CurationFile[] }) {
         </div>
       </Section>
 
-      <Section title="4. Conferir e salvar">
+      <Section title="4. Conferir, salvar e publicar">
         {errors.length > 0 ? (
           <ul className="flex flex-col gap-1 text-sm">
             {errors.map((e) => (
@@ -560,38 +592,89 @@ export function CurationEditor({ existing }: { existing: CurationFile[] }) {
           </ul>
         ) : (
           <p className="text-sm text-[#4cc38a]">
-            Tudo preenchido. Confira o arquivo no diff antes de publicar.
+            Tudo preenchido. Confira cada valor com o manual antes de publicar.
           </p>
         )}
-        <button
-          type="button"
-          disabled={pending || errors.length > 0}
-          onClick={() =>
-            start(async () => {
-              const r = await saveCuration(c);
-              setMessage(
-                r.ok
-                  ? {
-                      ok: true,
-                      text: (
-                        <>
-                          Salvo em <code>{r.file}</code>. Para publicar: revise o diff, rode{" "}
-                          <code>pnpm db:seed &amp;&amp; pnpm db:relink</code> e faça o commit.
-                        </>
-                      ),
-                    }
-                  : { ok: false, text: r.errors.join(" ") },
-              );
-            })
-          }
-          className={`${buttonClasses("primary", "lg")} mt-3 self-start px-6 disabled:opacity-50`}
-        >
-          {pending ? "Salvando…" : "Salvar arquivo de curadoria"}
-        </button>
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() =>
+              start(async () => {
+                const r = await saveDraft(c);
+                setConfirming(false);
+                setMessage(
+                  r.ok
+                    ? {
+                        ok: true,
+                        text:
+                          r.pending.length > 0
+                            ? `Rascunho salvo. Faltam ${r.pending.length} itens para poder publicar.`
+                            : "Rascunho salvo. Pronto para publicar.",
+                      }
+                    : { ok: false, text: r.error },
+                );
+              })
+            }
+            className={`${buttonClasses("secondary", "lg")} px-6`}
+          >
+            {pending ? "Salvando…" : "Salvar rascunho"}
+          </button>
+          {confirming ? (
+            <>
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() =>
+                  start(async () => {
+                    const r = await publish(c);
+                    setConfirming(false);
+                    setMessage(
+                      r.ok
+                        ? {
+                            ok: true,
+                            text:
+                              r.linked.length > 0
+                                ? `Publicado. Já está no app — e ${r.linked.length} carro(s) da fila ganharam o mapa: ${r.linked.join(", ")}.`
+                                : "Publicado. Já está no app para quem cadastrar este carro.",
+                          }
+                        : { ok: false, text: r.errors.join(" ") },
+                    );
+                  })
+                }
+                className={`${buttonClasses("primary", "lg")} px-6`}
+              >
+                {pending ? "Publicando…" : "Confirmar: publicar para os usuários"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirming(false)}
+                className="text-foreground-muted text-sm font-semibold"
+              >
+                Cancelar
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              disabled={pending || errors.length > 0}
+              onClick={() => setConfirming(true)}
+              className={`${buttonClasses("primary", "lg")} px-6 disabled:opacity-50`}
+            >
+              Publicar
+            </button>
+          )}
+        </div>
+        {confirming ? (
+          <p className="text-foreground-muted text-sm">
+            Publicar grava a ficha e o mapa de &quot;{c.layout.title}&quot; no app agora, para todos
+            os usuários com este carro. Os valores foram conferidos com o manual e a segunda fonte?
+          </p>
+        ) : null}
         {message ? (
           <p
             role="status"
-            className={`mt-3 text-sm ${message.ok ? "text-foreground" : "text-warning"}`}
+            className={`mt-1 text-sm ${message.ok ? "text-foreground" : "text-warning"}`}
           >
             {message.text}
           </p>

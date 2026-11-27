@@ -55,9 +55,7 @@ export const accounts = pgTable(
     id_token: text("id_token"),
     session_state: text("session_state"),
   },
-  (table) => [
-    primaryKey({ columns: [table.provider, table.providerAccountId] }),
-  ],
+  (table) => [primaryKey({ columns: [table.provider, table.providerAccountId] })],
 );
 
 export const sessions = pgTable("session", {
@@ -184,9 +182,7 @@ export const trimEngineMap = pgTable(
     trimLabel: text("trim_label"),
     fuelType: fuelTypeEnum("fuel_type"),
     disambiguationHint: text("disambiguation_hint"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index("trim_engine_map_make_model_year_idx").on(
@@ -310,12 +306,8 @@ export const vehicles = pgTable(
     /** Preenchido na tela "Confirme seu veículo"; zerado ao editar os dados. */
     confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
     engineId: uuid("engine_id").references(() => engines.id),
-    engineMatchStatus: engineMatchStatusEnum("engine_match_status")
-      .notNull()
-      .default("unmatched"),
-    pendingTrimEngineMapId: uuid("pending_trim_engine_map_id").references(
-      () => trimEngineMap.id,
-    ),
+    engineMatchStatus: engineMatchStatusEnum("engine_match_status").notNull().default("unmatched"),
+    pendingTrimEngineMapId: uuid("pending_trim_engine_map_id").references(() => trimEngineMap.id),
     currentKm: integer("current_km"),
     kmUpdatedAt: timestamp("km_updated_at", { withTimezone: true }),
     photoUrl: text("photo_url"),
@@ -325,9 +317,7 @@ export const vehicles = pgTable(
     plateLookupId: uuid("plate_lookup_id").references(() => plateLookups.id, {
       onDelete: "set null",
     }),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     // Único por usuário, não globalmente: o mesmo carro pode trocar de dono
@@ -368,9 +358,7 @@ export const plateLookups = pgTable(
     fipeCode: text("fipe_code"),
     /** FipeVersion[] (lib/domain/plate-vehicle.ts). */
     fipeVersions: jsonb("fipe_versions"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [unique("plate_lookups_plate_unique").on(table.plate)],
 );
@@ -390,9 +378,7 @@ export const plateLookupAttempts = pgTable(
     source: text("source").notNull(),
     /** found | not_found | unavailable | quota_exceeded | not_configured | limit | invalid. */
     outcome: text("outcome").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index("plate_lookup_attempts_user_created_idx").on(table.userId, table.createdAt),
@@ -435,17 +421,11 @@ export const maintenanceRecords = pgTable(
     parts: jsonb("parts"),
     totalValue: numeric("total_value", { precision: 10, scale: 2 }),
     notes: text("notes"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index("maintenance_records_vehicle_id_idx").on(table.vehicleId),
-    index("maintenance_records_vehicle_fluid_idx").on(
-      table.vehicleId,
-      table.fluidType,
-      table.date,
-    ),
+    index("maintenance_records_vehicle_fluid_idx").on(table.vehicleId, table.fluidType, table.date),
   ],
 );
 
@@ -456,9 +436,7 @@ export const documents = pgTable("documents", {
     .references(() => maintenanceRecords.id, { onDelete: "cascade" }),
   storagePath: text("storage_path").notNull(),
   mimeType: text("mime_type"),
-  uploadedAt: timestamp("uploaded_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
+  uploadedAt: timestamp("uploaded_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 // ---------------------------------------------------------------------------
@@ -476,9 +454,7 @@ export const userPreferences = pgTable("user_preferences", {
   }),
   notifyReminders: boolean("notify_reminders").notNull().default(true),
   notifyPush: boolean("notify_push").notNull().default(false),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 // ---------------------------------------------------------------------------
@@ -528,37 +504,31 @@ export const componentsRelations = relations(components, ({ one }) => ({
   }),
 }));
 
-export const engineLayoutHotspotsRelations = relations(
-  engineLayoutHotspots,
-  ({ one }) => ({
-    layout: one(engineLayouts, {
-      fields: [engineLayoutHotspots.layoutId],
-      references: [engineLayouts.id],
-    }),
-    fluid: one(fluidTypes, {
-      fields: [engineLayoutHotspots.fluidType],
-      references: [fluidTypes.code],
-    }),
+export const engineLayoutHotspotsRelations = relations(engineLayoutHotspots, ({ one }) => ({
+  layout: one(engineLayouts, {
+    fields: [engineLayoutHotspots.layoutId],
+    references: [engineLayouts.id],
   }),
-);
+  fluid: one(fluidTypes, {
+    fields: [engineLayoutHotspots.fluidType],
+    references: [fluidTypes.code],
+  }),
+}));
 
 export const trimEngineMapRelations = relations(trimEngineMap, ({ many }) => ({
   candidates: many(trimEngineCandidates),
 }));
 
-export const trimEngineCandidatesRelations = relations(
-  trimEngineCandidates,
-  ({ one }) => ({
-    trimEngineMap: one(trimEngineMap, {
-      fields: [trimEngineCandidates.trimEngineMapId],
-      references: [trimEngineMap.id],
-    }),
-    engine: one(engines, {
-      fields: [trimEngineCandidates.engineId],
-      references: [engines.id],
-    }),
+export const trimEngineCandidatesRelations = relations(trimEngineCandidates, ({ one }) => ({
+  trimEngineMap: one(trimEngineMap, {
+    fields: [trimEngineCandidates.trimEngineMapId],
+    references: [trimEngineMap.id],
   }),
-);
+  engine: one(engines, {
+    fields: [trimEngineCandidates.engineId],
+    references: [engines.id],
+  }),
+}));
 
 export const vehiclesRelations = relations(vehicles, ({ one, many }) => ({
   user: one(users, { fields: [vehicles.userId], references: [users.id] }),
@@ -585,16 +555,13 @@ export const plateLookupAttemptsRelations = relations(plateLookupAttempts, ({ on
   }),
 }));
 
-export const maintenanceRecordsRelations = relations(
-  maintenanceRecords,
-  ({ one, many }) => ({
-    vehicle: one(vehicles, {
-      fields: [maintenanceRecords.vehicleId],
-      references: [vehicles.id],
-    }),
-    documents: many(documents),
+export const maintenanceRecordsRelations = relations(maintenanceRecords, ({ one, many }) => ({
+  vehicle: one(vehicles, {
+    fields: [maintenanceRecords.vehicleId],
+    references: [vehicles.id],
   }),
-);
+  documents: many(documents),
+}));
 
 export const documentsRelations = relations(documents, ({ one }) => ({
   maintenanceRecord: one(maintenanceRecords, {
@@ -603,12 +570,39 @@ export const documentsRelations = relations(documents, ({ one }) => ({
   }),
 }));
 
-export const userPreferencesRelations = relations(
-  userPreferences,
-  ({ one }) => ({
-    selectedVehicle: one(vehicles, {
-      fields: [userPreferences.selectedVehicleId],
-      references: [vehicles.id],
-    }),
+export const userPreferencesRelations = relations(userPreferences, ({ one }) => ({
+  selectedVehicle: one(vehicles, {
+    fields: [userPreferences.selectedVehicleId],
+    references: [vehicles.id],
   }),
+}));
+
+// ---------------------------------------------------------------------------
+// Curadoria online (/curadoria, só administradores). Cada linha é um carro:
+// o arquivo de curadoria inteiro (lib/domain/curation.ts) em `data`. Rascunho
+// não aparece para ninguém; "Publicar" grava o catálogo (motor, fluidos,
+// layout, pontos, modelos) e vincula os carros que estavam na fila.
+// ---------------------------------------------------------------------------
+export const curationStatusEnum = pgEnum("curation_status", ["draft", "published"]);
+
+export const curations = pgTable(
+  "curations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    /** = engine_layouts.code; um carro (layout) por linha. */
+    layoutCode: text("layout_code").notNull().unique(),
+    /** CurationFile completo. */
+    data: jsonb("data").notNull(),
+    status: curationStatusEnum("status").notNull().default("draft"),
+    /** Há mudanças salvas depois da última publicação. */
+    hasUnpublishedChanges: boolean("has_unpublished_changes").notNull().default(true),
+    /** Conteúdo exatamente como foi publicado (o mapa lê daqui). */
+    publishedData: jsonb("published_data"),
+    updatedByEmail: text("updated_by_email"),
+    publishedByEmail: text("published_by_email"),
+    publishedAt: timestamp("published_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("curations_status_idx").on(table.status)],
 );
